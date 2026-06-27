@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  db:
+    image: mysql:8.0
+    container_name: tapdent-db
+    environment:
+      # .env ファイルから値を読み込むように変更
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      # 127.0.0.1 を頭につけて、外部ネットワークからの不正アクセスを遮断
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tapdent-web
+    ports:
+      - "8080:8080"
+    volumes:
+      # プロジェクト全体をマウントしてホットリロードを可能にする
+      - .:/app
+      # Mavenの依存ライブラリをキャッシュして二回目以降のビルドを高速化
+      - maven_cache:/root/.m2
+    environment:
+      # コンテナ間通信のため、DBホストは db 、ポートは 3306 を指定
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/${MYSQL_DATABASE}?useSSL=false&serverTimezone=Asia/Tokyo&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      # DevToolsがライブリロードや再起動をトリガーするように明示的に指定
+      - SPRING_DEVTOOLS_RESTART_ENABLED=true
+    depends_on:
+      - db
+
+volumes:
+  mysql_data:
+  maven_cache:
+

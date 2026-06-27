@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>アカウント一覧 | TapDent Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --primary:       #6366f1;
+            --primary-dark:  #4f46e5;
+            --primary-glow:  rgba(99, 102, 241, 0.3);
+            --sidebar-bg:    #0f0e17;
+            --content-bg:    #13111d;
+            --card-bg:       rgba(255,255,255,0.05);
+            --border:        rgba(255,255,255,0.08);
+            --input-bg:      rgba(255,255,255,0.04);
+            --input-focus:   rgba(255,255,255,0.07);
+            --text-primary:  #f1f5f9;
+            --text-secondary:#94a3b8;
+            --text-muted:    #64748b;
+            --success:       #34d399;
+            --success-bg:    rgba(52,211,153,0.12);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--content-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* ─── サイドバー ─── */
+        .sidebar {
+            width: 260px;
+            min-height: 100vh;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 28px 0;
+            position: fixed;
+            left: 0; top: 0; bottom: 0;
+            z-index: 100;
+        }
+
+        .sidebar-logo {
+            padding: 0 24px 28px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-logo-text { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+        .sidebar-logo-text span {
+            background: linear-gradient(135deg, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sidebar-logo-sub { font-size: 10px; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 3px; }
+
+        .nav-section { padding: 0 12px; flex: 1; }
+        .nav-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.2px; padding: 0 12px; margin-bottom: 8px; margin-top: 16px; }
+        
+        .nav-item {
+            display: flex; align-items: center; gap: 12px; padding: 11px 12px;
+            border-radius: 10px; color: var(--text-secondary); text-decoration: none;
+            font-size: 14px; font-weight: 500; transition: background 0.15s, color 0.15s;
+            cursor: pointer; border: none; background: none; width: 100%; text-align: left;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+        .nav-item.active { background: rgba(99,102,241,0.15); color: var(--primary); }
+        .nav-item svg { flex-shrink: 0; }
+
+        .sidebar-footer { padding: 16px 12px 0; border-top: 1px solid var(--border); margin-top: 12px; }
+        .admin-badge { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--card-bg); border-radius: 12px; margin-bottom: 12px; }
+        .admin-avatar { width: 38px; height: 38px; background: linear-gradient(135deg, var(--primary), #818cf8); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
+        .admin-info-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+        .admin-info-role { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+        /* ─── メインコンテンツ ─── */
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 40px 48px;
+            min-height: 100vh;
+        }
+
+        .page-header { margin-bottom: 36px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .page-title { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+        .page-subtitle { font-size: 14px; color: var(--text-secondary); margin-top: 6px; }
+
+        .btn-primary {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white; border: none; border-radius: 9px;
+            font-size: 13px; font-weight: 600; text-decoration: none;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 4px 14px var(--primary-glow);
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--primary-glow); }
+
+        .flash-success {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--success-bg); border: 1px solid rgba(52,211,153,0.3);
+            color: var(--success); padding: 14px 20px; border-radius: 12px;
+            font-size: 14px; font-weight: 500; margin-bottom: 24px;
+        }
+
+        /* ─── 検索フォーム ─── */
+        .search-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .form-group { flex: 1; min-width: 200px; }
+        .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+        
+        .form-input, .form-select {
+            width: 100%; padding: 11px 14px;
+            background: var(--input-bg); border: 1px solid var(--border);
+            border-radius: 9px; color: var(--text-primary); font-size: 14px;
+            outline: none; transition: border-color 0.2s;
+        }
+        .form-input:focus, .form-select:focus { border-color: var(--primary); }
+        
+        .form-select {
+            appearance: none; -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2394a3b8' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px;
+        }
+        .form-select option { background: #1e1b2e; color: var(--text-primary); }
+
+        .btn-search {
+            padding: 11px 24px; background: rgba(255,255,255,0.1);
+            color: white; border: 1px solid var(--border); border-radius: 9px;
+            font-size: 14px; font-weight: 500; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-search:hover { background: rgba(255,255,255,0.15); }
+
+        /* ─── テーブル ─── */
+        .table-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .data-table {
+            width: 100%; border-collapse: collapse; text-align: left;
+        }
+
+        .data-table th, .data-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            font-size: 12px; font-weight: 600; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.5px;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .data-table td { font-size: 14px; color: var(--text-primary); }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+        .data-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+        }
+        .status-badge.active { background: var(--success-bg); color: var(--success); }
+        .status-badge.suspended { background: rgba(251,191,36,0.12); color: #fbbf24; }
+        .status-badge.canceled { background: rgba(248,113,113,0.12); color: #f87171; }
+
+        .action-btns { display: flex; gap: 8px; }
+        
+        .btn-sm {
+            padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
+            cursor: pointer; border: 1px solid var(--border); background: rgba(255,255,255,0.05);
+            color: var(--text-primary); text-decoration: none; transition: background 0.2s;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-sm:hover { background: rgba(255,255,255,0.1); }
+        .btn-copy { color: #818cf8; border-color: rgba(129, 140, 248, 0.3); }
+        .btn-copy:hover { background: rgba(129, 140, 248, 0.1); }
+        
+        .empty-state { padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<aside th:replace="~{admin/fragments/sidebar :: sidebar('clinics')}"></aside>
+
+<!-- ─── メインコンテンツ ─── -->
+<main class="main-content">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">アカウント一覧</h1>
+            <p class="page-subtitle">登録されている歯科医院の管理・検索ができます</p>
+        </div>
+        <a href="/admin/clinics/register" class="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            新規医院登録
+        </a>
+    </div>
+
+    <!-- フラッシュメッセージ -->
+    <div th:if="${successMessage}" class="flash-success">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        <span th:text="${successMessage}"></span>
+    </div>
+
+    <!-- 検索フォーム -->
+    <div class="search-card">
+        <form action="/admin/clinics" method="get" class="search-form">
+            <div class="form-group">
+                <label for="name" class="form-label">医院名</label>
+                <input type="text" id="name" name="name" class="form-input" placeholder="名前で検索..." th:value="${searchName}">
+            </div>
+            <div class="form-group">
+                <label for="contractStatus" class="form-label">契約ステータス</label>
+                <select id="contractStatus" name="contractStatus" class="form-select">
+                    <option value="">すべて</option>
+                    <option th:each="status : ${statuses}"
+                            th:value="${status}"
+                            th:text="${status.name() == 'ACTIVE' ? '契約中' : (status.name() == 'SUSPENDED' ? '一時停止' : '解約')}"
+                            th:selected="${searchStatus == status}">
+                    </option>
+                </select>
+            </div>
+            <button type="submit" class="btn-search">検索する</button>
+        </form>
+    </div>
+
+    <!-- 一覧テーブル -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>医院名</th>
+                    <th>ログインID</th>
+                    <th>ステータス</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="clinic : ${clinics}">
+                    <td th:text="${clinic.dentalId}">1</td>
+                    <td th:text="${clinic.name}" style="font-weight: 500;">医院名</td>
+                    <td th:text="${clinic.loginId}" style="color: var(--text-secondary);">login_id</td>
+                    <td>
+                        <span th:class="'status-badge ' + (${clinic.contractStatus?.statusName?.name() == 'ACTIVE' ? 'active' : (clinic.contractStatus?.statusName?.name() == 'SUSPENDED' ? 'suspended' : 'canceled')})"
+                              th:text="${clinic.contractStatus?.statusName?.name() == 'ACTIVE' ? '契約中' : (clinic.contractStatus?.statusName?.name() == 'SUSPENDED' ? '一時停止' : '解約')}">
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            <a th:href="|/admin/clinics/${clinic.dentalId}/edit|" class="btn-sm">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                編集
+                            </a>
+                            <button type="button" class="btn-sm btn-copy" th:data-token="${clinic.publicUrlToken}" onclick="copyUrl(this)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                                URLコピー
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(clinics)}">
+                    <td colspan="5" class="empty-state">該当する医院アカウントが見つかりませんでした。</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ページネーション -->
+    <div th:if="${page != null and page.totalPages > 1}" style="margin-top: 24px; display: flex; justify-content: center; gap: 12px; align-items: center;">
+        <a th:if="${page.hasPrevious()}" th:href="|/admin/clinics?name=${searchName != null ? searchName : ''}&contractStatus=${searchStatus != null ? searchStatus : ''}&page=${page.number - 1}|" class="btn-sm" style="padding: 8px 16px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            前へ
+        </a>
+        <span style="color: var(--text-secondary); font-size: 14px; font-weight: 500;" th:text="${page.number + 1} + ' / ' + ${page.totalPages}"></span>
+        <a th:if="${page.hasNext()}" th:href="|/admin/clinics?name=${searchName != null ? searchName : ''}&contractStatus=${searchStatus != null ? searchStatus : ''}&page=${page.number + 1}|" class="btn-sm" style="padding: 8px 16px;">
+            次へ
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        </a>
+    </div>
+
+</main>
+
+<script>
+    function copyUrl(button) {
+        const token = button.getAttribute('data-token');
+        const url = window.location.origin + '/clinic/' + token;
+        navigator.clipboard.writeText(url).then(() => {
+            alert('公開URLをクリップボードにコピーしました:\n' + url);
+        }).catch(err => {
+            console.error('URLのコピーに失敗しました', err);
+            alert('URLのコピーに失敗しました。');
+        });
+    }
+</script>
+
+</body>
+</html>
