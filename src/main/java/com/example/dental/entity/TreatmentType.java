@@ -9,12 +9,21 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
+import com.example.dental.enums.TargetStaffType;
+import com.example.dental.enums.TargetPatientType;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
 @Table(name = "treatment_type")
+@SQLDelete(sql = "UPDATE treatment_type SET is_deleted = true WHERE treatment_id = ?")
+@SQLRestriction("is_deleted = false")
 @Getter
 @Setter
 public class TreatmentType {
@@ -41,8 +50,16 @@ public class TreatmentType {
     @Column(nullable = false)
     private Boolean status = true;
 
-    // 予約制限（TRUE: 全員選択可能、FALSE: 既存患者のみ選択可能）
-    // 設計書の「TRUE:全員 FALSE：既存患者のみ」に基づき初期値TRUEで設定
-    @Column(name = "is_existing_only", nullable = false)
-    private Boolean isExistingOnly = true;
+    // 対象患者（初診、既存、全員）
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_patient_type", nullable = false)
+    private TargetPatientType targetPatientType = TargetPatientType.ALL;
+
+    // どのスタッフの予約枠を消費するか
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_staff_type", nullable = false)
+    private TargetStaffType targetStaffType = TargetStaffType.NONE;
+
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
 }

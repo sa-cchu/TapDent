@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>診療メニュー管理 | TapDent</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .navbar-custom {
+            background-color: #0d6efd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .navbar-custom .navbar-brand,
+        .navbar-custom .nav-link {
+            color: #fff;
+            font-weight: 500;
+        }
+        @media (min-width: 992px) {
+            .sidebar {
+                min-height: calc(100vh - 56px);
+                border-right: 1px solid #dee2e6;
+                background-color: #fff;
+            }
+        }
+        .sidebar-link {
+            color: #495057;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: #e9ecef;
+            color: #0d6efd;
+            font-weight: 600;
+        }
+        .content-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .content-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="d-flex flex-column vh-100 overflow-hidden">
+
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/clinic/dashboard">
+                <i class="bi bi-hospital me-2"></i>TapDent <span class="fs-6 ms-2 opacity-75">for Clinic</span>
+            </a>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                    <li class="nav-item">
+                        <form th:action="@{/clinic/logout}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid flex-grow-1 overflow-hidden">
+        <div class="row h-100">
+            <nav th:replace="~{clinic/fragments/sidebar :: sidebar('treatments')}"></nav>
+
+            <main class="col-lg-10 h-100 overflow-y-auto py-4 px-lg-5 pb-5" style="background-color: #f4f7fb;">
+                
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i><span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+                    <div>
+                        <h1 class="h3 mb-1 text-dark fw-bold">診療メニュー管理</h1>
+                        <p class="text-muted mb-0 small">クリニックで提供する診療メニューの登録・編集を行います。</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <!-- フィルター dropdown -->
+                        <div class="dropdown" id="filter-dropdown-container">
+                            <button class="btn btn-outline-secondary bg-white shadow-sm dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="height: 40px; border-radius: 8px;">
+                                <i class="bi bi-funnel me-2"></i>
+                                <span th:text="${selectedTargetPatient == null ? 'すべての患者' : (selectedTargetPatient.name() == 'FIRST_VISIT' ? '初診患者のみ' : (selectedTargetPatient.name() == 'EXISTING' ? '既存患者のみ' : '制限なし'))}">すべての患者</span>
+                            </button>
+                            <ul class="dropdown-menu shadow border-0" style="border-radius: 8px;">
+                                <li><a class="dropdown-item" th:classappend="${selectedTargetPatient == null ? 'active bg-primary text-white' : ''}" href="/clinic/treatments" onclick="filterTreatments(event, this.href)">すべての患者</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" th:classappend="${selectedTargetPatient != null and selectedTargetPatient.name() == 'FIRST_VISIT' ? 'active bg-primary text-white' : ''}" href="/clinic/treatments?targetPatient=FIRST_VISIT" onclick="filterTreatments(event, this.href)">初診患者のみ</a></li>
+                                <li><a class="dropdown-item" th:classappend="${selectedTargetPatient != null and selectedTargetPatient.name() == 'EXISTING' ? 'active bg-primary text-white' : ''}" href="/clinic/treatments?targetPatient=EXISTING" onclick="filterTreatments(event, this.href)">既存患者のみ</a></li>
+                                <li><a class="dropdown-item" th:classappend="${selectedTargetPatient != null and selectedTargetPatient.name() == 'ALL' ? 'active bg-primary text-white' : ''}" href="/clinic/treatments?targetPatient=ALL" onclick="filterTreatments(event, this.href)">対象制限なし</a></li>
+                            </ul>
+                        </div>
+                        <a href="/clinic/treatments/create" class="btn btn-primary shadow-sm d-flex align-items-center px-3" style="height: 40px; border-radius: 8px;">
+                            <i class="bi bi-plus-lg me-2"></i>新規登録
+                        </a>
+                    </div>
+                </div>
+
+                <!-- メニュー一覧テーブル -->
+                <div class="card content-card shadow-sm border-0" style="border-radius: 12px;" id="treatment-list-container">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4 py-3 text-secondary fw-semibold">メニュー名</th>
+                                        <th class="py-3 text-secondary fw-semibold">所要時間</th>
+                                        <th class="py-3 text-secondary fw-semibold">公開状況</th>
+                                        <th class="py-3 text-secondary fw-semibold">対象患者</th>
+                                        <th class="py-3 text-secondary fw-semibold">担当枠</th>
+                                        <th class="text-end pe-4 py-3 text-secondary fw-semibold">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="t : ${treatments}">
+                                        <td class="ps-4 py-3 fw-bold text-dark">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-journal-medical text-primary fs-5"></i>
+                                                <span th:text="${t.treatmentName}"></span>
+                                            </div>
+                                        </td>
+                                        <td class="py-3" th:text="${t.requiredMinutes} + '分'"></td>
+                                        <td class="py-3">
+                                            <span th:if="${t.status}" class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-1">
+                                                <i class="bi bi-globe me-1"></i>Web予約
+                                            </span>
+                                            <span th:unless="${t.status}" class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 rounded-pill px-3 py-1">
+                                                <i class="bi bi-telephone me-1"></i>電話のみ
+                                            </span>
+                                        </td>
+                                        <td class="py-3">
+                                            <span th:switch="${t.targetPatientType.name()}">
+                                                <span th:case="'FIRST_VISIT'">初診患者</span>
+                                                <span th:case="'EXISTING'">既存患者</span>
+                                                <span th:case="'ALL'">全員</span>
+                                            </span>
+                                        </td>
+                                        <td class="py-3">
+                                            <span th:switch="${t.targetStaffType.name()}">
+                                                <span th:case="'DENTIST'">歯科医師</span>
+                                                <span th:case="'HYGIENIST'">歯科衛生士</span>
+                                                <span th:case="'ORTHODONTIST'">矯正医</span>
+                                                <span th:case="'IMPLANTOLOGIST'">インプラント医</span>
+                                                <span th:case="'NONE'">制限なし</span>
+                                            </span>
+                                        </td>
+                                        <td class="text-end pe-4 py-3">
+                                            <a th:href="@{/clinic/treatments/{id}/edit(id=${t.treatmentId})}" class="btn btn-sm btn-outline-primary rounded-pill px-3 me-2">編集</a>
+                                            <form th:action="@{/clinic/treatments/{id}/delete(id=${t.treatmentId})}" method="post" class="d-inline" onsubmit="return confirm('本当に削除しますか？');">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">削除</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${treatments.empty}">
+                                        <td colspan="6" class="text-center py-5 text-muted">
+                                            <div class="mb-3"><i class="bi bi-journal-x" style="font-size: 2.5rem; opacity: 0.3;"></i></div>
+                                            条件に一致する診療メニューが登録されていません。<br>右上の「新規登録」ボタンから追加してください。
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function filterTreatments(event, url) {
+            event.preventDefault();
+            
+            // テーブル部分を少し薄くしてローディング感を出す（オプション）
+            document.getElementById('treatment-list-container').style.opacity = '0.5';
+
+            fetch(url)
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // テーブル部分とドロップダウン部分を非同期で入れ替える
+                    const newTable = doc.getElementById('treatment-list-container');
+                    if (newTable) {
+                        const container = document.getElementById('treatment-list-container');
+                        container.innerHTML = newTable.innerHTML;
+                        container.style.opacity = '1';
+                    }
+                        
+                    const newDropdown = doc.getElementById('filter-dropdown-container');
+                    if (newDropdown) {
+                        document.getElementById('filter-dropdown-container').innerHTML = newDropdown.innerHTML;
+                    }
+                        
+                    // ブラウザのURLと履歴を更新（戻るボタン対応）
+                    window.history.pushState({path: url}, '', url);
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    document.getElementById('treatment-list-container').style.opacity = '1';
+                });
+        }
+
+        // ブラウザの戻る・進むボタンに対応して画面をリロード
+        window.addEventListener('popstate', function() {
+            window.location.reload();
+        });
+    </script>
+</body>
+</html>

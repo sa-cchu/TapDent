@@ -21,7 +21,7 @@
 
 ## 3. 実装ルール
 - 不正予約制御など、DBが絡む整合性チェックはすべて Service 層に記述し、Controller から呼び出すこと。
-- 論理削除には `is_deleted` フラグを使用し、Entity に `@SQLDelete` と `@Where` を付与すること。
+- 論理削除があれば `is_deleted` フラグを使用し、Entity に `@SQLDelete` と `@Where` を付与すること。
 
 ## 4.フロントデザインルール
 -Bootstrapをベースとする
