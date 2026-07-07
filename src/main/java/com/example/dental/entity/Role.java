@@ -27,7 +27,7 @@ public class Role {
 
     // 権限名（ROLE_PATIENT, ROLE_CLINIC, ROLE_ADMIN のいずれか）
     @Enumerated(EnumType.STRING)
-    @Column(name = "role_name", nullable = false, unique = true, length = 10)
+    @Column(name = "role_name", nullable = false, unique = true, length = 20)
     private RoleName roleName;
     
     

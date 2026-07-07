@@ -34,10 +34,24 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD}
       # DevToolsがライブリロードや再起動をトリガーするように明示的に指定
       - SPRING_DEVTOOLS_RESTART_ENABLED=true
+      # メール設定 (Gmail等の.envを読み込む。指定がない場合はMailHogへ)
+      - SPRING_MAIL_HOST=${SPRING_MAIL_HOST:-mailhog}
+      - SPRING_MAIL_PORT=${SPRING_MAIL_PORT:-1025}
+      - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME:-}
+      - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD:-}
+      - SPRING_MAIL_AUTH=${SPRING_MAIL_AUTH:-false}
+      - SPRING_MAIL_STARTTLS=${SPRING_MAIL_STARTTLS:-false}
     depends_on:
       - db
+      - mailhog
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: tapdent-mailhog
+    ports:
+      - "1025:1025" # SMTP port
+      - "8025:8025" # Web UI port
 
 volumes:
   mysql_data:
   maven_cache:
-

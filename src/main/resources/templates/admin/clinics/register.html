@@ -385,7 +385,7 @@
         <p class="page-subtitle">新しい歯科医院のアカウントを作成します</p>
     </div>
 
-    <form id="registerClinicForm" th:action="@{/admin/clinics/register}" th:object="${clinicRegistrationForm}" method="post">
+    <form id="registerClinicForm" th:action="@{/admin/clinics/register}" th:object="${clinicRegistrationForm}" method="post" novalidate>
 
         <!-- ─── アカウント情報 ─── -->
         <div class="form-card">

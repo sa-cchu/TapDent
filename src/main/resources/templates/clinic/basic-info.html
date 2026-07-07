@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基本医院情報 | TapDent</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        /* Navbar (Blue theme) */
+        .navbar-custom {
+            background-color: #0d6efd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .navbar-custom .navbar-brand,
+        .navbar-custom .nav-link {
+            color: #fff;
+            font-weight: 500;
+        }
+        .navbar-custom .nav-link:hover {
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* Sidebar layout */
+        @media (min-width: 992px) {
+            .sidebar {
+                min-height: calc(100vh - 56px);
+                border-right: 1px solid #dee2e6;
+                background-color: #fff;
+            }
+        }
+        .sidebar-link {
+            color: #495057;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: #e9ecef;
+            color: #0d6efd;
+            font-weight: 600;
+        }
+
+        .dashboard-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        .form-check-input:checked {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        /* Business Hours Styles */
+        .business-hour-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #0d6efd !important;
+        }
+        .business-hour-card.is-holiday {
+            border-left: 4px solid #6c757d !important;
+            background-color: #f8f9fa;
+        }
+        
+        .time-input-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .time-separator {
+            color: #6c757d;
+        }
+
+        /* Custom animation classes */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="d-flex flex-column vh-100 overflow-hidden">
+
+    <!-- Header Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/clinic/dashboard">
+                <i class="bi bi-hospital me-2"></i>TapDent <span class="fs-6 ms-2 opacity-75">for Clinic</span>
+            </a>
+            <button class="navbar-toggler border-white text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="ナビゲーションを切り替える">
+                <i class="bi bi-list"></i>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                    <li class="nav-item me-3 text-white">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span th:text="${clinic.name}">医院名</span> さん
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/clinic/logout}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid flex-grow-1 overflow-hidden">
+        <div class="row h-100">
+            
+            <!-- Sidebar Navigation -->
+            <nav th:replace="~{clinic/fragments/sidebar :: sidebar('basic-info')}"></nav>
+
+            <!-- Main Content Area -->
+            <main class="col-lg-10 h-100 overflow-y-auto py-4 px-lg-5 pb-5">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="h3 mb-0 text-gray-800"><i class="bi bi-building-gear me-2 text-primary"></i>基本医院情報</h1>
+                </div>
+
+                <!-- Alert box -->
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle me-1"></i>
+                    <span th:text="${successMessage}">更新成功</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <span th:text="${errorMessage}">更新失敗</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+
+                <form th:action="@{/clinic/basic-info/update}" method="post" th:object="${clinicBasicInfoForm}" novalidate>
+                    
+                    <div th:if="${#fields.hasAnyErrors()}" class="alert alert-danger mb-4" role="alert">
+                        <i class="bi bi-exclamation-triangle me-1"></i>入力内容にエラーがあります。
+                        <ul class="mb-0 mt-1 small">
+                            <li th:each="err : ${#fields.errors('.*')}" th:text="${err}"></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Left Column: Basic Info & Reservation Settings -->
+                        <div class="col-xl-4 mb-4">
+                            <div class="card dashboard-card h-100">
+                                <div class="card-header bg-white border-bottom py-3">
+                                    <h5 class="card-title mb-0"><i class="bi bi-info-circle me-2"></i>医院情報の確認と変更</h5>
+                                </div>
+                                <div class="card-body p-4">
+                                    <h6 class="mb-3 text-primary border-bottom pb-2">基本情報</h6>
+                                    
+                                    <div class="mb-3">
+                                        <label for="name" class="form-label fw-bold">医院名 <span class="badge bg-danger ms-1">必須</span></label>
+                                        <input type="text" class="form-control" id="name" th:field="*{name}" th:errorclass="is-invalid">
+                                        <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="address" class="form-label fw-bold">住所</label>
+                                        <input type="text" class="form-control" id="address" th:field="*{address}" th:errorclass="is-invalid">
+                                        <div class="invalid-feedback" th:if="${#fields.hasErrors('address')}" th:errors="*{address}"></div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="tel" class="form-label fw-bold">電話番号</label>
+                                        <input type="tel" class="form-control" id="tel" th:field="*{tel}" placeholder="03-XXXX-XXXX" th:errorclass="is-invalid">
+                                        <div class="invalid-feedback" th:if="${#fields.hasErrors('tel')}" th:errors="*{tel}"></div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <label for="mail" class="form-label fw-bold">メールアドレス</label>
+                                        <input type="email" class="form-control" id="mail" th:field="*{mail}" placeholder="info@example.com" th:errorclass="is-invalid">
+                                        <div class="invalid-feedback" th:if="${#fields.hasErrors('mail')}" th:errors="*{mail}"></div>
+                                        <div class="form-text">お知らせやパスコードの送信先になります。</div>
+                                    </div>
+
+                                    <h6 class="mb-3 text-primary border-bottom pb-2 mt-4">予約設定</h6>
+
+                                    <div class="mb-3">
+                                        <label for="maxReserveMonth" class="form-label fw-bold">最大予約可能月数 <span class="badge bg-danger ms-1">必須</span></label>
+                                        <div class="input-group" style="max-width: 200px;">
+                                            <select class="form-select" id="maxReserveMonth" th:field="*{maxReserveMonth}" th:errorclass="is-invalid">
+                                                <option value="1">1ヶ月先まで</option>
+                                                <option value="2">2ヶ月先まで</option>
+                                                <option value="3">3ヶ月先まで</option>
+                                                <option value="4">4ヶ月先まで</option>
+                                                <option value="5">5ヶ月先まで</option>
+                                                <option value="6">6ヶ月先まで</option>
+                                            </select>
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('maxReserveMonth')}" th:errors="*{maxReserveMonth}"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4 p-3 bg-light rounded border">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <div class="fw-bold fs-6">当日予約制限</div>
+                                                <div class="form-text mt-1">オンにすると、当日の新規予約を受け付けません。</div>
+                                            </div>
+                                            <div class="form-check form-switch fs-4 mb-0">
+                                                <input class="form-check-input" type="checkbox" role="switch" id="reservationRestrictions" th:field="*{reservationRestrictions}" th:errorclass="is-invalid">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <h6 class="mb-3 text-primary border-bottom pb-2 mt-4">職種別 予約枠制限 (同時受付数)</h6>
+                                    
+                                    <div class="mb-4 bg-light p-3 rounded border">
+                                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2 border-secondary-subtle">
+                                            <label for="limitDentist" class="form-label fw-bold small mb-0">歯科医師 <span class="badge bg-danger ms-1">必須</span></label>
+                                            <div style="width: 100px;">
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" class="form-control text-end" id="limitDentist" th:field="*{limitDentist}" min="0" th:errorclass="is-invalid">
+                                                    <span class="input-group-text">枠</span>
+                                                </div>
+                                                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('limitDentist')}" th:errors="*{limitDentist}"></div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2 border-secondary-subtle">
+                                            <label for="limitHygienist" class="form-label fw-bold small mb-0">歯科衛生士 <span class="badge bg-danger ms-1">必須</span></label>
+                                            <div style="width: 100px;">
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" class="form-control text-end" id="limitHygienist" th:field="*{limitHygienist}" min="0" th:errorclass="is-invalid">
+                                                    <span class="input-group-text">枠</span>
+                                                </div>
+                                                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('limitHygienist')}" th:errors="*{limitHygienist}"></div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2 border-secondary-subtle">
+                                            <label for="limitOrthodontist" class="form-label fw-bold small mb-0">矯正歯科医 <span class="badge bg-danger ms-1">必須</span></label>
+                                            <div style="width: 100px;">
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" class="form-control text-end" id="limitOrthodontist" th:field="*{limitOrthodontist}" min="0" th:errorclass="is-invalid">
+                                                    <span class="input-group-text">枠</span>
+                                                </div>
+                                                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('limitOrthodontist')}" th:errors="*{limitOrthodontist}"></div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <label for="limitImplantologist" class="form-label fw-bold small mb-0">インプラント医 <span class="badge bg-danger ms-1">必須</span></label>
+                                            <div style="width: 100px;">
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" class="form-control text-end" id="limitImplantologist" th:field="*{limitImplantologist}" min="0" th:errorclass="is-invalid">
+                                                    <span class="input-group-text">枠</span>
+                                                </div>
+                                                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('limitImplantologist')}" th:errors="*{limitImplantologist}"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-text mb-4">
+                                        同じ時間帯に受け付けられる最大人数を設定します。「0」の場合はその職種の予約を受け付けません。
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Business Hours -->
+                        <div class="col-xl-8 mb-4">
+                            <div class="card dashboard-card h-100">
+                                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0"><i class="bi bi-clock me-2"></i>基本診療時間</h5>
+                                    <button type="button" id="copyWeekdayBtn" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-files me-1"></i>月曜の設定を火〜金にコピー
+                                    </button>
+                                </div>
+                                <div class="card-body p-4 bg-light">
+                                    
+                                    <div class="mb-2 text-muted small">
+                                        <i class="bi bi-info-circle me-1"></i>各曜日の「診療日/休診日」ボタンを切り替えて設定してください。休憩がない場合は休憩時間を空欄にしてください。
+                                    </div>
+                                    
+                                    <!-- Loop through business hours -->
+                                    <div th:each="bh, stat : *{businessHours}" 
+                                         class="card mb-3 shadow-sm border-0 business-hour-card"
+                                         th:classappend="${bh.regularHoliday} ? 'is-holiday' : ''"
+                                         th:data-day="${bh.dayOfWeek}" th:data-index="${stat.index}">
+                                        
+                                        <div class="card-body p-3">
+                                            <!-- Hidden fields to submit data -->
+                                            <input type="hidden" th:field="*{businessHours[__${stat.index}__].dayOfWeek}" />
+                                            <input type="hidden" th:field="*{businessHours[__${stat.index}__].dayOfWeekLabel}" />
+                                            
+                                            <div class="row align-items-center g-3">
+                                                
+                                                <!-- Left: Day Label & Buttons -->
+                                                <div class="col-md-4 col-lg-3 d-flex align-items-center gap-3">
+                                                    <h5 class="mb-0 fw-bold fs-5 text-center" style="width: 30px;" th:text="${bh.dayOfWeekLabel}">月</h5>
+                                                    <div class="btn-group btn-group-sm w-100" role="group">
+                                                        <input type="radio" class="btn-check holiday-radio" th:id="'holiday_off_' + ${stat.index}" 
+                                                               th:field="*{businessHours[__${stat.index}__].regularHoliday}" value="false" autocomplete="off">
+                                                        <label class="btn btn-outline-primary" th:for="'holiday_off_' + ${stat.index}">診療</label>
+                                    
+                                                        <input type="radio" class="btn-check holiday-radio" th:id="'holiday_on_' + ${stat.index}" 
+                                                               th:field="*{businessHours[__${stat.index}__].regularHoliday}" value="true" autocomplete="off">
+                                                        <label class="btn btn-outline-secondary" th:for="'holiday_on_' + ${stat.index}">休診</label>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Right: Time Inputs or Holiday Text -->
+                                                <div class="col-md-8 col-lg-9">
+                                                    
+                                                    <!-- Time Inputs (Visible only when '診療' is selected) -->
+                                                    <div class="time-section fade-in" th:style="${bh.regularHoliday} ? 'display: none;' : 'display: block;'">
+                                                        <div class="d-flex flex-column gap-2">
+                                                            <!-- 営業時間 -->
+                                                            <div class="d-flex align-items-center p-1">
+                                                                <span class="badge bg-primary text-white me-3" style="width: 70px; font-size: 0.85rem;">営業時間</span>
+                                                                <div class="input-group flex-grow-1" style="max-width: 350px;">
+                                                                    <input type="time" class="form-control text-center" th:field="*{businessHours[__${stat.index}__].openAt}">
+                                                                    <span class="input-group-text bg-light border-start-0 border-end-0 px-2 text-muted">〜</span>
+                                                                    <input type="time" class="form-control text-center" th:field="*{businessHours[__${stat.index}__].closeAt}">
+                                                                    <button class="btn btn-outline-secondary clear-time-btn" type="button" title="クリア">
+                                                                        <i class="bi bi-x"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            <!-- 休憩時間 -->
+                                                            <div class="d-flex align-items-center p-1 bg-light rounded border border-light-subtle">
+                                                                <span class="badge text-dark bg-white border border-secondary-subtle me-3" style="width: 70px; font-size: 0.85rem;">休憩時間</span>
+                                                                <div class="input-group flex-grow-1" style="max-width: 350px;">
+                                                                    <input type="time" class="form-control text-center bg-white" th:field="*{businessHours[__${stat.index}__].breakStartAt}">
+                                                                    <span class="input-group-text bg-white border-start-0 border-end-0 px-2 text-muted">〜</span>
+                                                                    <input type="time" class="form-control text-center bg-white" th:field="*{businessHours[__${stat.index}__].breakEndAt}">
+                                                                    <button class="btn btn-outline-secondary clear-time-btn" type="button" title="クリア">
+                                                                        <i class="bi bi-x"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <!-- 時間エラーメッセージ -->
+                                                        <div th:if="${#fields.hasErrors('businessHours[__${stat.index}__].*')}" class="text-danger small mt-2 fw-bold ps-1">
+                                                            <i class="bi bi-exclamation-circle me-1"></i>正しい時間を入力してください
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Holiday Text (Visible only when '休診' is selected) -->
+                                                    <div class="holiday-section text-center py-1 fade-in" th:style="${bh.regularHoliday} ? 'display: block;' : 'display: none;'">
+                                                        <div class="text-muted fw-bold small p-1 bg-light rounded w-100" style="border: 1px dashed #ced4da;">
+                                                            <i class="bi bi-cup-hot me-2"></i>この曜日はお休みです
+                                                        </div>
+                                                    </div>
+                                                    
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-end mt-2 pt-3 border-top mb-5">
+                        <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm" id="submitBtn">
+                            <i class="bi bi-save me-2"></i>設定を保存する
+                        </button>
+                    </div>
+                </form>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle holiday radio buttons toggle
+            const holidayRadios = document.querySelectorAll('.holiday-radio');
+            
+            holidayRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const card = this.closest('.business-hour-card');
+                    const timeSection = card.querySelector('.time-section');
+                    const holidaySection = card.querySelector('.holiday-section');
+                    
+                    if (this.value === 'true') { // 休診日
+                        card.classList.add('is-holiday');
+                        timeSection.style.display = 'none';
+                        holidaySection.style.display = 'block';
+                        holidaySection.classList.add('fade-in');
+                        
+                        // Clear and disable to prevent sending invalid data on holiday
+                        card.querySelectorAll('input[type="time"]').forEach(input => {
+                            input.value = '';
+                            input.disabled = true;
+                        });
+                    } else { // 診療日
+                        card.classList.remove('is-holiday');
+                        timeSection.style.display = 'block';
+                        timeSection.classList.add('fade-in');
+                        holidaySection.style.display = 'none';
+                        
+                        // Enable inputs
+                        card.querySelectorAll('input[type="time"]').forEach(input => {
+                            input.disabled = false;
+                        });
+                    }
+                });
+            });
+
+            // Clear time button logic
+            document.querySelectorAll('.clear-time-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const group = this.closest('.input-group');
+                    group.querySelectorAll('input[type="time"]').forEach(input => {
+                        input.value = '';
+                    });
+                });
+            });
+
+            // Handle copy from Monday to Weekdays
+            const copyBtn = document.getElementById('copyWeekdayBtn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', function() {
+                    const mondayCard = document.querySelector('.business-hour-card[data-day="MONDAY"]');
+                    if (!mondayCard) return;
+
+                    // Get Monday's state
+                    const monIsHoliday = mondayCard.querySelector('input[value="true"]').checked;
+                    const monOpen = mondayCard.querySelector('input[name$=".openAt"]').value;
+                    const monClose = mondayCard.querySelector('input[name$=".closeAt"]').value;
+                    const monBreakStart = mondayCard.querySelector('input[name$=".breakStartAt"]').value;
+                    const monBreakEnd = mondayCard.querySelector('input[name$=".breakEndAt"]').value;
+
+                    const targetDays = ['TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
+                    
+                    targetDays.forEach(day => {
+                        const targetCard = document.querySelector(`.business-hour-card[data-day="${day}"]`);
+                        if (targetCard) {
+                            // Copy radio selection
+                            const radioOff = targetCard.querySelector('input[value="false"]');
+                            const radioOn = targetCard.querySelector('input[value="true"]');
+                            
+                            if (monIsHoliday) {
+                                radioOn.checked = true;
+                            } else {
+                                radioOff.checked = true;
+                            }
+                            
+                            // Trigger change event for UI update
+                            const event = new Event('change');
+                            (monIsHoliday ? radioOn : radioOff).dispatchEvent(event);
+
+                            // Copy time values if it's not a holiday
+                            if (!monIsHoliday) {
+                                targetCard.querySelector('input[name$=".openAt"]').value = monOpen;
+                                targetCard.querySelector('input[name$=".closeAt"]').value = monClose;
+                                targetCard.querySelector('input[name$=".breakStartAt"]').value = monBreakStart;
+                                targetCard.querySelector('input[name$=".breakEndAt"]').value = monBreakEnd;
+                            }
+                        }
+                    });
+
+                    // UI feedback on button
+                    const originalHtml = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<i class="bi bi-check me-1"></i>コピーしました';
+                    copyBtn.classList.replace('btn-outline-primary', 'btn-success');
+                    copyBtn.classList.add('text-white');
+                    
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalHtml;
+                        copyBtn.classList.replace('btn-success', 'btn-outline-primary');
+                        copyBtn.classList.remove('text-white');
+                    }, 2000);
+                });
+            }
+            
+            // Client-side validation for business hours on submit
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function(e) {
+                let isValid = true;
+                
+                document.querySelectorAll('.business-hour-card:not(.is-holiday)').forEach(card => {
+                    const dayLabel = card.querySelector('h5').textContent.trim();
+                    const open = card.querySelector('input[name$=".openAt"]').value;
+                    const close = card.querySelector('input[name$=".closeAt"]').value;
+                    const breakStart = card.querySelector('input[name$=".breakStartAt"]').value;
+                    const breakEnd = card.querySelector('input[name$=".breakEndAt"]').value;
+
+                    // Open/Close logic
+                    if ((open && !close) || (!open && close)) {
+                        alert(`${dayLabel}曜日の営業時間が正しく入力されていません。`);
+                        isValid = false;
+                        return;
+                    }
+                    if (open && close && open >= close) {
+                        alert(`${dayLabel}曜日の閉店時間は開店時間より後にしてください。`);
+                        isValid = false;
+                        return;
+                    }
+
+                    // Break logic
+                    if ((breakStart && !breakEnd) || (!breakStart && breakEnd)) {
+                        alert(`${dayLabel}曜日の休憩時間が正しく入力されていません。`);
+                        isValid = false;
+                        return;
+                    }
+                    if (breakStart && breakEnd && breakStart >= breakEnd) {
+                        alert(`${dayLabel}曜日の休憩終了時間は休憩開始時間より後にしてください。`);
+                        isValid = false;
+                        return;
+                    }
+                });
+                
+                if (!isValid) {
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

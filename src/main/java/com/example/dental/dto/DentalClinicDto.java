@@ -1,5 +1,7 @@
 package com.example.dental.dto;
 
+import com.example.dental.enums.ContractStatusName;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,9 +15,13 @@ public class DentalClinicDto {
     private String address;
     private String tel;
     private String mail;
-    private ContractStatusDto contractStatus;
+    private ContractStatusName contractStatus;
     private Integer maxReserveMonth;
     private Boolean reservationRestrictions;
     private Integer roleId;
     private String publicUrlToken;
+    private Integer limitDentist;
+    private Integer limitHygienist;
+    private Integer limitOrthodontist;
+    private Integer limitImplantologist;
 }

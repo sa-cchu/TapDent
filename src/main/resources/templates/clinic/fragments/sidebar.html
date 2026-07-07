@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+</head>
+
+<body>
+    <!-- Sidebar Navigation -->
+    <nav th:fragment="sidebar(activeMenu)" class="col-lg-2 d-none d-lg-block sidebar h-100 overflow-y-auto py-4">
+        <div class="nav flex-column px-3">
+            <a href="/clinic/dashboard" class="sidebar-link"
+                th:classappend="${activeMenu == 'dashboard'} ? 'active' : ''">
+                <i class="bi bi-house-door"></i> ホーム
+            </a>
+            <a href="#" class="sidebar-link" th:classappend="${activeMenu == 'appointments'} ? 'active' : ''">
+                <i class="bi bi-calendar-check"></i> 予約管理
+            </a>
+            <a href="#" class="sidebar-link" th:classappend="${activeMenu == 'patients'} ? 'active' : ''">
+                <i class="bi bi-people"></i> 患者管理
+            </a>
+            <a href="/clinic/basic-info" class="sidebar-link"
+                th:classappend="${activeMenu == 'basic-info'} ? 'active' : ''">
+                <i class="bi bi-building-gear"></i> 基本医院情報
+            </a>
+            <a href="/clinic/settings" class="sidebar-link"
+                th:classappend="${activeMenu == 'settings'} ? 'active' : ''">
+                <i class="bi bi-gear"></i> 設定
+            </a>
+        </div>
+    </nav>
+</body>
+
+</html>

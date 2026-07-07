@@ -21,13 +21,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(
-    name = "business_hours",
-    uniqueConstraints = @UniqueConstraint(
-        name = "uk_dental_day_of_week",
-        columnNames = {"dental_id", "day_of_week"}
-    )
-)
+@Table(name = "business_hours", uniqueConstraints = @UniqueConstraint(name = "uk_dental_day_of_week", columnNames = {
+        "dental_id", "day_of_week" }))
 @Getter
 @Setter
 public class BusinessHour {
@@ -46,10 +41,10 @@ public class BusinessHour {
     @Column(name = "day_of_week", nullable = false)
     private DayOfWeek dayOfWeek;
 
-    @Column(name = "open_at", nullable = false)
+    @Column(name = "open_at")
     private LocalTime openAt;
 
-    @Column(name = "close_at", nullable = false)
+    @Column(name = "close_at")
     private LocalTime closeAt;
 
     @Column(name = "break_start_at")

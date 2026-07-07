@@ -10,4 +10,5 @@ import java.util.Optional;
 @Repository
 public interface BusinessHourRepository extends JpaRepository<BusinessHour, Long> {
     Optional<BusinessHour> findByDentalClinicDentalIdAndDayOfWeek(Long dentalId, DayOfWeek dayOfWeek);
+    java.util.List<BusinessHour> findByDentalClinicDentalId(Long dentalId);
 }

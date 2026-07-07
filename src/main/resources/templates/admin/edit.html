@@ -316,7 +316,7 @@
         <p class="page-subtitle">ユーザー名とパスワードを変更できます</p>
     </div>
 
-    <form id="editForm" th:action="@{/admin/edit}" th:object="${adminEditForm}" method="post">
+    <form id="editForm" th:action="@{/admin/edit}" th:object="${adminEditForm}" method="post" novalidate>
 
         <!-- ─── 基本情報 ─── -->
         <div class="form-card">

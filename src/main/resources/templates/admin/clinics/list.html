@@ -268,8 +268,8 @@
                     <td th:text="${clinic.name}" style="font-weight: 500;">医院名</td>
                     <td th:text="${clinic.loginId}" style="color: var(--text-secondary);">login_id</td>
                     <td>
-                        <span th:class="'status-badge ' + (${clinic.contractStatus?.statusName?.name() == 'ACTIVE' ? 'active' : (clinic.contractStatus?.statusName?.name() == 'SUSPENDED' ? 'suspended' : 'canceled')})"
-                              th:text="${clinic.contractStatus?.statusName?.name() == 'ACTIVE' ? '契約中' : (clinic.contractStatus?.statusName?.name() == 'SUSPENDED' ? '一時停止' : '解約')}">
+                        <span th:class="'status-badge ' + (${clinic.contractStatus?.name() == 'ACTIVE' ? 'active' : (clinic.contractStatus?.name() == 'SUSPENDED' ? 'suspended' : 'canceled')})"
+                              th:text="${clinic.contractStatus?.name() == 'ACTIVE' ? '契約中' : (clinic.contractStatus?.name() == 'SUSPENDED' ? '一時停止' : '解約')}">
                         </span>
                     </td>
                     <td>

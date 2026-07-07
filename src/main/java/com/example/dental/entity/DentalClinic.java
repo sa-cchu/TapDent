@@ -9,12 +9,19 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+
+import org.hibernate.annotations.SQLDelete;
+
+import com.example.dental.enums.ContractStatusName;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
 @Table(name = "dental_clinic")
+@SQLDelete(sql = "UPDATE dental_clinic SET is_deleted = true WHERE dental_id = ?")
 @Getter
 @Setter
 public class DentalClinic {
@@ -42,9 +49,9 @@ public class DentalClinic {
    @Column(length = 255)
    private String mail;
 
-   @ManyToOne(fetch = FetchType.LAZY)
-   @JoinColumn(name = "status_id")
-   private ContractStatus contractStatus;
+   @Enumerated(EnumType.STRING)
+   @Column(name = "contract_status", nullable = false, length = 10)
+   private ContractStatusName contractStatus;
 
    @Column(name = "max_reserve_month")
    private Integer maxReserveMonth;
@@ -60,4 +67,17 @@ public class DentalClinic {
    // URL悪用防止用のランダムトークン
    @Column(name = "public_url_token", nullable = false, unique = true, length = 255)
    private String publicUrlToken;
+
+   @Column(name = "limit_dentist", nullable = false)
+   private Integer limitDentist = 0;
+
+   @Column(name = "limit_hygienist", nullable = false)
+   private Integer limitHygienist = 0;
+
+   @Column(name = "limit_orthodontist", nullable = false)
+   private Integer limitOrthodontist = 0;
+
+   @Column(name = "limit_implantologist", nullable = false)
+   private Integer limitImplantologist = 0;
+
 }

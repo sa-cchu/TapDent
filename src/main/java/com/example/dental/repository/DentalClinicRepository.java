@@ -8,10 +8,11 @@ import java.util.Optional;
 
 @Repository
 public interface DentalClinicRepository extends JpaRepository<DentalClinic, Long> {
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"role"})
     Optional<DentalClinic> findByLoginId(String loginId);
     Optional<DentalClinic> findByPublicUrlToken(String publicUrlToken);
 
-    org.springframework.data.domain.Page<DentalClinic> findByNameContainingAndContractStatus(String name, com.example.dental.entity.ContractStatus status, org.springframework.data.domain.Pageable pageable);
+    org.springframework.data.domain.Page<DentalClinic> findByNameContainingAndContractStatus(String name, com.example.dental.enums.ContractStatusName status, org.springframework.data.domain.Pageable pageable);
     org.springframework.data.domain.Page<DentalClinic> findByNameContaining(String name, org.springframework.data.domain.Pageable pageable);
-    org.springframework.data.domain.Page<DentalClinic> findByContractStatus(com.example.dental.entity.ContractStatus status, org.springframework.data.domain.Pageable pageable);
+    org.springframework.data.domain.Page<DentalClinic> findByContractStatus(com.example.dental.enums.ContractStatusName status, org.springframework.data.domain.Pageable pageable);
 }

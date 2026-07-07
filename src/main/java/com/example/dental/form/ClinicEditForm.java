@@ -24,7 +24,7 @@ public class ClinicEditForm {
     private ContractStatusName contractStatus;
 
     // パスワードは空の場合は変更しないものとする
-    @Size(min = 8, max = 100, message = "パスワードは8文字以上100文字以内で入力してください")
+    @jakarta.validation.constraints.Pattern(regexp = "^$|.{8,100}", message = "パスワードは8文字以上100文字以内で入力してください")
     private String password;
 
     // --- Getter / Setter ---

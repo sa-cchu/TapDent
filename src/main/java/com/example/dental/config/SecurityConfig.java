@@ -1,9 +1,11 @@
 package com.example.dental.config;
 
+import com.example.dental.service.AdminUserDetailsService;
+import com.example.dental.service.ClinicUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -13,9 +15,16 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private final AdminUserDetailsService adminUserDetailsService;
+    private final ClinicUserDetailsService clinicUserDetailsService;
+
+    public SecurityConfig(AdminUserDetailsService adminUserDetailsService, ClinicUserDetailsService clinicUserDetailsService) {
+        this.adminUserDetailsService = adminUserDetailsService;
+        this.clinicUserDetailsService = clinicUserDetailsService;
+    }
+
     /**
      * パスワードハッシュ化用のBeanを登録。
-     * DataInitializerなど、各コンポーネントからDIして使用する。
      */
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
@@ -23,39 +32,26 @@ public class SecurityConfig {
     }
 
     /**
-     * AuthenticationManager を Bean として公開（必要に応じて使用可能）
+     * 管理者(Admin)向けのSecurityFilterChain
      */
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration authConfig) throws Exception {
-        return authConfig.getAuthenticationManager();
-    }
+    @Order(1)
+    public SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
+        DaoAuthenticationProvider adminAuthProvider = new DaoAuthenticationProvider(adminUserDetailsService);
+        adminAuthProvider.setPasswordEncoder(passwordEncoder());
 
-    /**
-     * Security フィルターチェーンの設定
-     * - /admin/login のみ未認証アクセスを許可
-     * - /admin/** はすべて認証必須
-     * - フォームログイン・ログアウトを有効化
-     */
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
+        http.securityMatcher("/admin/**")
+            .authenticationProvider(adminAuthProvider)
             .authorizeHttpRequests(auth -> auth
-                // 静的リソースは全員アクセス可
-                .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
-                // ログインページは未認証でアクセス可
                 .requestMatchers("/admin/login").permitAll()
-                // /admin/** はすべて認証必須
                 .requestMatchers("/admin/**").authenticated()
-                // その他は全員アクセス可（患者向けページなど将来追加分）
-                .anyRequest().permitAll()
             )
             .formLogin(form -> form
-                .loginPage("/admin/login")              // カスタムログインページ
-                .loginProcessingUrl("/admin/login")     // POST 先（Spring Security が処理）
-                .defaultSuccessUrl("/admin/dashboard", true) // 認証成功後のリダイレクト先
-                .failureUrl("/admin/login?error")       // 認証失敗後のリダイレクト先
-                .usernameParameter("loginId")           // フォームのユーザー名フィールド名
+                .loginPage("/admin/login")
+                .loginProcessingUrl("/admin/login")
+                .defaultSuccessUrl("/admin/dashboard", true)
+                .failureUrl("/admin/login?error")
+                .usernameParameter("loginId")
                 .passwordParameter("password")
                 .permitAll()
             )
@@ -67,6 +63,54 @@ public class SecurityConfig {
                 .permitAll()
             );
 
+        return http.build();
+    }
+
+    /**
+     * 歯科医院(Clinic)向けのSecurityFilterChain
+     */
+    @Bean
+    @Order(2)
+    public SecurityFilterChain clinicFilterChain(HttpSecurity http) throws Exception {
+        DaoAuthenticationProvider clinicAuthProvider = new DaoAuthenticationProvider(clinicUserDetailsService);
+        clinicAuthProvider.setPasswordEncoder(passwordEncoder());
+
+        http.securityMatcher("/clinic/**")
+            .authenticationProvider(clinicAuthProvider)
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/clinic/login").permitAll()
+                .requestMatchers("/clinic/**").authenticated()
+            )
+            .formLogin(form -> form
+                .loginPage("/clinic/login")
+                .loginProcessingUrl("/clinic/login")
+                .defaultSuccessUrl("/clinic/dashboard", true)
+                .failureUrl("/clinic/login?error")
+                .usernameParameter("loginId")
+                .passwordParameter("password")
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/clinic/logout")
+                .logoutSuccessUrl("/clinic/login?logout")
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID")
+                .permitAll()
+            );
+
+        return http.build();
+    }
+
+    /**
+     * その他のアクセス(静的リソースなど)向けのSecurityFilterChain
+     */
+    @Bean
+    @Order(3)
+    public SecurityFilterChain defaultFilterChain(HttpSecurity http) throws Exception {
+        http.authorizeHttpRequests(auth -> auth
+            .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
+            .anyRequest().permitAll()
+        );
         return http.build();
     }
 }

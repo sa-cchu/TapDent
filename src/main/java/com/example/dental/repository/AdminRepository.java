@@ -8,5 +8,6 @@ import java.util.Optional;
 
 @Repository
 public interface AdminRepository extends JpaRepository<Admin, Integer> {
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"role"})
     Optional<Admin> findByLoginId(String loginId);
 }

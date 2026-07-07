@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医院情報設定 | TapDent</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        /* Navbar (Blue theme) */
+        .navbar-custom {
+            background-color: #0d6efd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .navbar-custom .navbar-brand,
+        .navbar-custom .nav-link {
+            color: #fff;
+            font-weight: 500;
+        }
+        .navbar-custom .nav-link:hover {
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* Sidebar layout */
+        @media (min-width: 992px) {
+            .sidebar {
+                min-height: calc(100vh - 56px);
+                border-right: 1px solid #dee2e6;
+                background-color: #fff;
+            }
+        }
+        .sidebar-link {
+            color: #495057;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: #e9ecef;
+            color: #0d6efd;
+            font-weight: 600;
+        }
+
+        .dashboard-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body class="d-flex flex-column vh-100 overflow-hidden">
+
+    <!-- Header Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/clinic/dashboard">
+                <i class="bi bi-hospital me-2"></i>TapDent <span class="fs-6 ms-2 opacity-75">for Clinic</span>
+            </a>
+            <button class="navbar-toggler border-white text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="ナビゲーションを切り替える">
+                <i class="bi bi-list"></i>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                    <li class="nav-item me-3 text-white">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span th:text="${clinic.name}">医院名</span> さん
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/clinic/logout}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid flex-grow-1 overflow-hidden">
+        <div class="row h-100">
+            
+            <!-- Sidebar Navigation -->
+            <nav th:replace="~{clinic/fragments/sidebar :: sidebar('settings')}"></nav>
+
+            <!-- Main Content Area -->
+            <main class="col-lg-10 h-100 overflow-y-auto py-4 px-lg-5 pb-5">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="h3 mb-0 text-gray-800">医院情報設定</h1>
+                </div>
+
+                <!-- Alert box -->
+                <div id="alertBox" class="alert d-none" role="alert"></div>
+
+                <div class="row">
+                    <div class="col-md-8 col-lg-6">
+                        <div class="card dashboard-card">
+                            <div class="card-header bg-white border-bottom py-3">
+                                <h5 class="card-title mb-0"><i class="bi bi-shield-lock me-2"></i>ログイン情報の変更</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Step 1: Input new credentials -->
+                                <div id="step1">
+                                    <p class="text-muted small mb-4">
+                                        ログインIDまたはパスワードを変更します。セキュリティのため、登録されているメールアドレスにパスコードを送信して認証を行います。
+                                    </p>
+                                    <div class="mb-3">
+                                        <label for="newLoginId" class="form-label">新しいログインID</label>
+                                        <input type="text" class="form-control" id="newLoginId" th:value="${clinic.loginId}">
+                                        <div class="form-text">変更しない場合はそのままにしてください。</div>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="newPassword" class="form-label">新しいパスワード</label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control" id="newPassword" placeholder="変更する場合のみ入力">
+                                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="newPassword">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="confirmPassword" class="form-label">新しいパスワード（確認用）</label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control" id="confirmPassword" placeholder="変更する場合のみ入力">
+                                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="confirmPassword">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                        <div class="form-text">変更しない場合は空白のままにしてください。</div>
+                                    </div>
+                                    <button type="button" id="btnRequestPasscode" class="btn btn-primary w-100">
+                                        <i class="bi bi-envelope-paper me-2"></i>パスコードを送信する
+                                    </button>
+                                </div>
+
+                                <!-- Step 2: Verification -->
+                                <div id="step2" class="d-none">
+                                    <div class="alert alert-info mb-4">
+                                        <i class="bi bi-info-circle-fill me-2"></i>
+                                        <span th:text="${clinic.mail}">メールアドレス</span> 宛に4桁のパスコードを送信しました。
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="passcode" class="form-label">4桁のパスコード</label>
+                                        <input type="text" class="form-control form-control-lg text-center" id="passcode" maxlength="4" placeholder="1234" style="letter-spacing: 0.5em;">
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" id="btnCancel" class="btn btn-outline-secondary w-50">キャンセル</button>
+                                        <button type="button" id="btnUpdate" class="btn btn-success w-50">
+                                            <i class="bi bi-check-circle me-2"></i>更新する
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const btnRequestPasscode = document.getElementById('btnRequestPasscode');
+            const btnUpdate = document.getElementById('btnUpdate');
+            const btnCancel = document.getElementById('btnCancel');
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            const alertBox = document.getElementById('alertBox');
+            
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+            function showAlert(message, type) {
+                alertBox.textContent = message;
+                alertBox.className = `alert alert-${type}`;
+                alertBox.classList.remove('d-none');
+                window.scrollTo(0, 0);
+            }
+
+            function hideAlert() {
+                alertBox.classList.add('d-none');
+            }
+
+            document.querySelectorAll('.toggle-password').forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const input = document.getElementById(targetId);
+                    const icon = this.querySelector('i');
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        icon.classList.remove('bi-eye');
+                        icon.classList.add('bi-eye-slash');
+                    } else {
+                        input.type = 'password';
+                        icon.classList.remove('bi-eye-slash');
+                        icon.classList.add('bi-eye');
+                    }
+                });
+            });
+
+            btnRequestPasscode.addEventListener('click', async function() {
+                const newLoginId = document.getElementById('newLoginId').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                if (!newLoginId) {
+                    showAlert('ログインIDは必須です', 'danger');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    showAlert('新しいパスワードが一致しません', 'danger');
+                    return;
+                }
+
+                btnRequestPasscode.disabled = true;
+                btnRequestPasscode.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>送信中...';
+                hideAlert();
+
+                try {
+                    const response = await fetch('/clinic/settings/request-passcode', {
+                        method: 'POST',
+                        headers: {
+                            [csrfHeader]: csrfToken
+                        }
+                    });
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showAlert(result.message, 'success');
+                        step1.classList.add('d-none');
+                        step2.classList.remove('d-none');
+                    } else {
+                        showAlert(result.message, 'danger');
+                    }
+                } catch (error) {
+                    showAlert('通信エラーが発生しました', 'danger');
+                } finally {
+                    btnRequestPasscode.disabled = false;
+                    btnRequestPasscode.innerHTML = '<i class="bi bi-envelope-paper me-2"></i>パスコードを送信する';
+                }
+            });
+
+            btnCancel.addEventListener('click', function() {
+                step2.classList.add('d-none');
+                step1.classList.remove('d-none');
+                document.getElementById('passcode').value = '';
+                hideAlert();
+            });
+
+            btnUpdate.addEventListener('click', async function() {
+                const newLoginId = document.getElementById('newLoginId').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const passcode = document.getElementById('passcode').value;
+
+                if (!passcode || passcode.length !== 4) {
+                    showAlert('4桁のパスコードを入力してください', 'danger');
+                    return;
+                }
+
+                btnUpdate.disabled = true;
+                btnUpdate.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>更新中...';
+                hideAlert();
+
+                const formData = new URLSearchParams();
+                formData.append('newLoginId', newLoginId);
+                formData.append('newPassword', newPassword);
+                formData.append('passcode', passcode);
+
+                try {
+                    const response = await fetch('/clinic/settings/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            [csrfHeader]: csrfToken
+                        },
+                        body: formData.toString()
+                    });
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // ログアウトページまたはログインページにリダイレクト
+                        showAlert(result.message + ' 3秒後にログイン画面へ移動します...', 'success');
+                        setTimeout(() => {
+                            window.location.href = '/clinic/login';
+                        }, 3000);
+                    } else {
+                        showAlert(result.message, 'danger');
+                        btnUpdate.disabled = false;
+                        btnUpdate.innerHTML = '<i class="bi bi-check-circle me-2"></i>更新する';
+                    }
+                } catch (error) {
+                    showAlert('通信エラーが発生しました', 'danger');
+                    btnUpdate.disabled = false;
+                    btnUpdate.innerHTML = '<i class="bi bi-check-circle me-2"></i>更新する';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

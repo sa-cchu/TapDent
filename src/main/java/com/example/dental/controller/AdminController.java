@@ -225,7 +225,7 @@ public class AdminController {
         form.setName(clinic.getName());
         form.setAddress(clinic.getAddress());
         form.setMail(clinic.getMail());
-        form.setContractStatus(clinic.getContractStatus() != null ? clinic.getContractStatus().getStatusName() : null);
+        form.setContractStatus(clinic.getContractStatus());
 
         model.addAttribute("admin", admin);
         model.addAttribute("clinic", clinic);

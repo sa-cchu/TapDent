@@ -2,12 +2,9 @@ package com.example.dental.config;
 
 import com.example.dental.entity.Admin;
 import com.example.dental.entity.Role;
-import com.example.dental.entity.ContractStatus;
 import com.example.dental.enums.RoleName;
-import com.example.dental.enums.ContractStatusName;
 import com.example.dental.repository.AdminRepository;
 import com.example.dental.repository.RoleRepository;
-import com.example.dental.repository.ContractStatusRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; // パスワード暗号化用
 import org.springframework.stereotype.Component;
@@ -18,15 +15,12 @@ public class DataInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
     private final AdminRepository adminRepository;
-    private final ContractStatusRepository contractStatusRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
     public DataInitializer(RoleRepository roleRepository, AdminRepository adminRepository,
-            ContractStatusRepository contractStatusRepository,
             BCryptPasswordEncoder passwordEncoder) {
         this.roleRepository = roleRepository;
         this.adminRepository = adminRepository;
-        this.contractStatusRepository = contractStatusRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -41,14 +35,6 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
 
-        // 1.5. 契約ステータスの初期化
-        for (ContractStatusName statusName : ContractStatusName.values()) {
-            if (contractStatusRepository.findByStatusName(statusName).isEmpty()) {
-                ContractStatus status = new ContractStatus();
-                status.setStatusName(statusName);
-                contractStatusRepository.save(status);
-            }
-        }
 
         // 2. 本番用：初期管理者の自動生成ロジック
         if (adminRepository.count() == 0) {
