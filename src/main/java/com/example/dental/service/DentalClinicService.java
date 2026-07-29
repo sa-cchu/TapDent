@@ -101,6 +101,9 @@ public class DentalClinicService {
         // 予約制限フラグはデフォルトで false
         clinic.setReservationRestrictions(false);
 
+        // 予約時間単位はデフォルトで 30 分
+        clinic.setReservationTimeUnit(30);
+
         // ランダムなURLトークンを生成
         clinic.setPublicUrlToken(UUID.randomUUID().toString());
 
@@ -149,10 +152,8 @@ public class DentalClinicService {
         clinic.setMail(form.getMail());
         clinic.setMaxReserveMonth(form.getMaxReserveMonth());
         clinic.setReservationRestrictions(form.getReservationRestrictions());
-        clinic.setLimitDentist(form.getLimitDentist() != null ? form.getLimitDentist() : 0);
-        clinic.setLimitHygienist(form.getLimitHygienist() != null ? form.getLimitHygienist() : 0);
-        clinic.setLimitOrthodontist(form.getLimitOrthodontist() != null ? form.getLimitOrthodontist() : 0);
-        clinic.setLimitImplantologist(form.getLimitImplantologist() != null ? form.getLimitImplantologist() : 0);
+        clinic.setReservationTimeUnit(form.getReservationTimeUnit() != null ? form.getReservationTimeUnit() : 30);
+
 
         dentalClinicRepository.save(clinic);
 
@@ -220,12 +221,10 @@ public class DentalClinicService {
         dto.setMail(entity.getMail());
         dto.setMaxReserveMonth(entity.getMaxReserveMonth());
         dto.setReservationRestrictions(entity.getReservationRestrictions());
+        dto.setReservationTimeUnit(entity.getReservationTimeUnit());
         dto.setPublicUrlToken(entity.getPublicUrlToken());
         dto.setContractStatus(entity.getContractStatus());
-        dto.setLimitDentist(entity.getLimitDentist());
-        dto.setLimitHygienist(entity.getLimitHygienist());
-        dto.setLimitOrthodontist(entity.getLimitOrthodontist());
-        dto.setLimitImplantologist(entity.getLimitImplantologist());
+
 
         if (entity.getRole() != null) {
             dto.setRoleId(entity.getRole().getRoleId());

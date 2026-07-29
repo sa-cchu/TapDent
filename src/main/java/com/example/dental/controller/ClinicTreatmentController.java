@@ -57,8 +57,7 @@ public class ClinicTreatmentController {
         form.setTreatmentName(treatment.getTreatmentName());
         form.setRequiredMinutes(treatment.getRequiredMinutes());
         form.setStatus(treatment.getStatus());
-        form.setTargetPatientType(treatment.getTargetPatientType());
-        form.setTargetStaffType(treatment.getTargetStaffType());
+        form.setTargetPatientTypes(java.util.List.of(treatment.getTargetPatientType()));
         
         model.addAttribute("treatmentTypeForm", form);
         model.addAttribute("treatmentId", id);

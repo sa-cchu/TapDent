@@ -45,10 +45,8 @@ public class ClinicBasicInfoController {
             form.setMail(clinic.getMail());
             form.setMaxReserveMonth(clinic.getMaxReserveMonth() != null ? clinic.getMaxReserveMonth() : 3);
             form.setReservationRestrictions(clinic.getReservationRestrictions() != null ? clinic.getReservationRestrictions() : false);
-            form.setLimitDentist(clinic.getLimitDentist() != null ? clinic.getLimitDentist() : 0);
-            form.setLimitHygienist(clinic.getLimitHygienist() != null ? clinic.getLimitHygienist() : 0);
-            form.setLimitOrthodontist(clinic.getLimitOrthodontist() != null ? clinic.getLimitOrthodontist() : 0);
-            form.setLimitImplantologist(clinic.getLimitImplantologist() != null ? clinic.getLimitImplantologist() : 0);
+            form.setReservationTimeUnit(clinic.getReservationTimeUnit() != null ? clinic.getReservationTimeUnit() : 30);
+
             
             // 診療時間（月〜日）の初期化
             List<BusinessHourDto> existingHours = dentalClinicService.getBusinessHours(clinic.getDentalId());

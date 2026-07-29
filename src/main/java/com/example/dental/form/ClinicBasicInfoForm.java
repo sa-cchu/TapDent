@@ -35,22 +35,11 @@ public class ClinicBasicInfoForm {
 
     @NotNull(message = "当日予約制限の有無は必須です")
     private Boolean reservationRestrictions;
+
+    @NotNull(message = "予約時間単位を選択してください")
+    private Integer reservationTimeUnit;
     
-    @NotNull(message = "歯科医師の予約枠数を入力してください")
-    @Min(value = 0, message = "0以上を指定してください")
-    private Integer limitDentist;
 
-    @NotNull(message = "歯科衛生士の予約枠数を入力してください")
-    @Min(value = 0, message = "0以上を指定してください")
-    private Integer limitHygienist;
-
-    @NotNull(message = "矯正歯科医の予約枠数を入力してください")
-    @Min(value = 0, message = "0以上を指定してください")
-    private Integer limitOrthodontist;
-
-    @NotNull(message = "インプラント医の予約枠数を入力してください")
-    @Min(value = 0, message = "0以上を指定してください")
-    private Integer limitImplantologist;
 
     @Valid
     private List<BusinessHourForm> businessHours;

@@ -10,11 +10,16 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
 @Table(name = "dental_chair")
+@SQLDelete(sql = "UPDATE dental_chair SET is_deleted = true WHERE chair_id=?")
+@SQLRestriction("is_deleted = false")
 @Getter
 @Setter
 public class DentalChair {
@@ -35,4 +40,7 @@ public class DentalChair {
     // TRUE：稼働、FALSE；非稼働（デフォルトTRUE）
     @Column(nullable = false)
     private Boolean status = true;
+
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
 }

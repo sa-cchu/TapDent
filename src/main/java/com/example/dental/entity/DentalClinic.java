@@ -68,16 +68,7 @@ public class DentalClinic {
    @Column(name = "public_url_token", nullable = false, unique = true, length = 255)
    private String publicUrlToken;
 
-   @Column(name = "limit_dentist", nullable = false)
-   private Integer limitDentist = 0;
-
-   @Column(name = "limit_hygienist", nullable = false)
-   private Integer limitHygienist = 0;
-
-   @Column(name = "limit_orthodontist", nullable = false)
-   private Integer limitOrthodontist = 0;
-
-   @Column(name = "limit_implantologist", nullable = false)
-   private Integer limitImplantologist = 0;
+   @Column(name = "reservation_time_unit", nullable = false)
+   private Integer reservationTimeUnit = 30;
 
 }

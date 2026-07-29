@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -65,6 +65,10 @@
             </a>
             <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                    <li class="nav-item me-3 text-white d-flex align-items-center">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span sec:authentication="principal.clinicName"></span><span class="ms-1">さん</span>
+                    </li>
                     <li class="nav-item">
                         <form th:action="@{/clinic/logout}" method="post" class="d-inline">
                             <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
@@ -103,7 +107,6 @@
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" th:classappend="${selectedTargetPatient != null and selectedTargetPatient.name() == 'FIRST_VISIT' ? 'active bg-primary text-white' : ''}" href="/clinic/treatments?targetPatient=FIRST_VISIT" onclick="filterTreatments(event, this.href)">初診患者のみ</a></li>
                                 <li><a class="dropdown-item" th:classappend="${selectedTargetPatient != null and selectedTargetPatient.name() == 'EXISTING' ? 'active bg-primary text-white' : ''}" href="/clinic/treatments?targetPatient=EXISTING" onclick="filterTreatments(event, this.href)">既存患者のみ</a></li>
-                                <li><a class="dropdown-item" th:classappend="${selectedTargetPatient != null and selectedTargetPatient.name() == 'ALL' ? 'active bg-primary text-white' : ''}" href="/clinic/treatments?targetPatient=ALL" onclick="filterTreatments(event, this.href)">対象制限なし</a></li>
                             </ul>
                         </div>
                         <a href="/clinic/treatments/create" class="btn btn-primary shadow-sm d-flex align-items-center px-3" style="height: 40px; border-radius: 8px;">
@@ -123,7 +126,6 @@
                                         <th class="py-3 text-secondary fw-semibold">所要時間</th>
                                         <th class="py-3 text-secondary fw-semibold">公開状況</th>
                                         <th class="py-3 text-secondary fw-semibold">対象患者</th>
-                                        <th class="py-3 text-secondary fw-semibold">担当枠</th>
                                         <th class="text-end pe-4 py-3 text-secondary fw-semibold">操作</th>
                                     </tr>
                                 </thead>
@@ -148,16 +150,6 @@
                                             <span th:switch="${t.targetPatientType.name()}">
                                                 <span th:case="'FIRST_VISIT'">初診患者</span>
                                                 <span th:case="'EXISTING'">既存患者</span>
-                                                <span th:case="'ALL'">全員</span>
-                                            </span>
-                                        </td>
-                                        <td class="py-3">
-                                            <span th:switch="${t.targetStaffType.name()}">
-                                                <span th:case="'DENTIST'">歯科医師</span>
-                                                <span th:case="'HYGIENIST'">歯科衛生士</span>
-                                                <span th:case="'ORTHODONTIST'">矯正医</span>
-                                                <span th:case="'IMPLANTOLOGIST'">インプラント医</span>
-                                                <span th:case="'NONE'">制限なし</span>
                                             </span>
                                         </td>
                                         <td class="text-end pe-4 py-3">
@@ -168,7 +160,7 @@
                                         </td>
                                     </tr>
                                     <tr th:if="${treatments.empty}">
-                                        <td colspan="6" class="text-center py-5 text-muted">
+                                        <td colspan="5" class="text-center py-5 text-muted">
                                             <div class="mb-3"><i class="bi bi-journal-x" style="font-size: 2.5rem; opacity: 0.3;"></i></div>
                                             条件に一致する診療メニューが登録されていません。<br>右上の「新規登録」ボタンから追加してください。
                                         </td>

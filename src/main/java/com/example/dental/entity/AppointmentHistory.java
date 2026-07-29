@@ -44,10 +44,6 @@ public class AppointmentHistory {
     private Patient patient;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "token_id", nullable = true)
-    private Token token;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "treatment_id", nullable = false)
     private TreatmentType treatmentType;
 

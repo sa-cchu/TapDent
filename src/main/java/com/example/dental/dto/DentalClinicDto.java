@@ -18,10 +18,8 @@ public class DentalClinicDto {
     private ContractStatusName contractStatus;
     private Integer maxReserveMonth;
     private Boolean reservationRestrictions;
+    private Integer reservationTimeUnit;
     private Integer roleId;
     private String publicUrlToken;
-    private Integer limitDentist;
-    private Integer limitHygienist;
-    private Integer limitOrthodontist;
-    private Integer limitImplantologist;
+
 }

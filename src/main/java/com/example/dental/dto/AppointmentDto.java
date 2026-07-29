@@ -13,7 +13,6 @@ public class AppointmentDto {
     private Long dentalId;
     private Long chairId;
     private Long patientId;
-    private Long tokenId;
     private Long treatmentId;
     private Boolean appointMethod;
     private LocalDateTime startAt;

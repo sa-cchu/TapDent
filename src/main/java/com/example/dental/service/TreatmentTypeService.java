@@ -49,15 +49,16 @@ public class TreatmentTypeService {
         DentalClinic clinic = dentalClinicRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid loginId"));
 
-        TreatmentType treatment = new TreatmentType();
-        treatment.setDentalClinic(clinic);
-        treatment.setTreatmentName(form.getTreatmentName());
-        treatment.setRequiredMinutes(form.getRequiredMinutes());
-        treatment.setStatus(form.getStatus());
-        treatment.setTargetPatientType(form.getTargetPatientType());
-        treatment.setTargetStaffType(form.getTargetStaffType());
+        for (com.example.dental.enums.TargetPatientType type : form.getTargetPatientTypes()) {
+            TreatmentType treatment = new TreatmentType();
+            treatment.setDentalClinic(clinic);
+            treatment.setTreatmentName(form.getTreatmentName());
+            treatment.setRequiredMinutes(form.getRequiredMinutes());
+            treatment.setStatus(form.getStatus());
+            treatment.setTargetPatientType(type);
 
-        treatmentTypeRepository.save(treatment);
+            treatmentTypeRepository.save(treatment);
+        }
     }
 
     public void updateTreatment(Long treatmentId, String loginId, TreatmentTypeForm form) {
@@ -66,10 +67,21 @@ public class TreatmentTypeService {
         treatment.setTreatmentName(form.getTreatmentName());
         treatment.setRequiredMinutes(form.getRequiredMinutes());
         treatment.setStatus(form.getStatus());
-        treatment.setTargetPatientType(form.getTargetPatientType());
-        treatment.setTargetStaffType(form.getTargetStaffType());
+        treatment.setTargetPatientType(form.getTargetPatientTypes().get(0));
 
         treatmentTypeRepository.save(treatment);
+
+        if (form.getTargetPatientTypes().size() > 1) {
+            for (int i = 1; i < form.getTargetPatientTypes().size(); i++) {
+                TreatmentType newTreatment = new TreatmentType();
+                newTreatment.setDentalClinic(treatment.getDentalClinic());
+                newTreatment.setTreatmentName(form.getTreatmentName());
+                newTreatment.setRequiredMinutes(form.getRequiredMinutes());
+                newTreatment.setStatus(form.getStatus());
+                newTreatment.setTargetPatientType(form.getTargetPatientTypes().get(i));
+                treatmentTypeRepository.save(newTreatment);
+            }
+        }
     }
 
     public void deleteTreatment(Long treatmentId, String loginId) {

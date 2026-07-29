@@ -10,4 +10,5 @@ public class DentalChairDto {
     private Long dentalId;
     private String chairName;
     private Boolean status;
+    private java.util.List<Long> treatmentIds;
 }

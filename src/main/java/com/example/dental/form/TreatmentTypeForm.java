@@ -2,8 +2,9 @@ package com.example.dental.form;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
+import java.util.List;
 import lombok.Data;
-import com.example.dental.enums.TargetStaffType;
 import com.example.dental.enums.TargetPatientType;
 
 @Data
@@ -18,9 +19,7 @@ public class TreatmentTypeForm {
     @NotNull(message = "公開状況を選択してください")
     private Boolean status;
 
-    @NotNull(message = "対象患者を選択してください")
-    private TargetPatientType targetPatientType;
+    @NotEmpty(message = "対象患者を1つ以上選択してください")
+    private List<TargetPatientType> targetPatientTypes;
 
-    @NotNull(message = "担当スタッフを選択してください")
-    private TargetStaffType targetStaffType;
 }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -109,9 +109,9 @@
             
             <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
-                    <li class="nav-item me-3 text-white">
+                    <li class="nav-item me-3 text-white d-flex align-items-center">
                         <i class="bi bi-person-circle me-1"></i>
-                        <span th:text="${clinic.name}">医院名</span> さん
+                        <span sec:authentication="principal.clinicName"></span><span class="ms-1">さん</span>
                     </li>
                     <li class="nav-item">
                         <form th:action="@{/clinic/logout}" method="post" class="d-inline">
@@ -210,6 +210,21 @@
                                         </div>
                                     </div>
 
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">予約時間単位 <span class="badge bg-danger ms-1">必須</span></label>
+                                        <div class="d-flex gap-3 mt-1">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" th:field="*{reservationTimeUnit}" value="15" id="unit15" th:errorclass="is-invalid">
+                                                <label class="form-check-label" for="unit15">15分単位</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" th:field="*{reservationTimeUnit}" value="30" id="unit30" th:errorclass="is-invalid">
+                                                <label class="form-check-label" for="unit30">30分単位</label>
+                                            </div>
+                                        </div>
+                                        <div class="text-danger small mt-1" th:if="${#fields.hasErrors('reservationTimeUnit')}" th:errors="*{reservationTimeUnit}"></div>
+                                        <div class="form-text">予約枠や診療メニューの時間を計算する際の基準単位になります。</div>
+                                    </div>
                                     <div class="mb-4 p-3 bg-light rounded border">
                                         <div class="d-flex align-items-center justify-content-between">
                                             <div>
@@ -222,53 +237,7 @@
                                         </div>
                                     </div>
 
-                                    <h6 class="mb-3 text-primary border-bottom pb-2 mt-4">職種別 予約枠制限 (同時受付数)</h6>
-                                    
-                                    <div class="mb-4 bg-light p-3 rounded border">
-                                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2 border-secondary-subtle">
-                                            <label for="limitDentist" class="form-label fw-bold small mb-0">歯科医師 <span class="badge bg-danger ms-1">必須</span></label>
-                                            <div style="width: 100px;">
-                                                <div class="input-group input-group-sm">
-                                                    <input type="number" class="form-control text-end" id="limitDentist" th:field="*{limitDentist}" min="0" th:errorclass="is-invalid">
-                                                    <span class="input-group-text">枠</span>
-                                                </div>
-                                                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('limitDentist')}" th:errors="*{limitDentist}"></div>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2 border-secondary-subtle">
-                                            <label for="limitHygienist" class="form-label fw-bold small mb-0">歯科衛生士 <span class="badge bg-danger ms-1">必須</span></label>
-                                            <div style="width: 100px;">
-                                                <div class="input-group input-group-sm">
-                                                    <input type="number" class="form-control text-end" id="limitHygienist" th:field="*{limitHygienist}" min="0" th:errorclass="is-invalid">
-                                                    <span class="input-group-text">枠</span>
-                                                </div>
-                                                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('limitHygienist')}" th:errors="*{limitHygienist}"></div>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2 border-secondary-subtle">
-                                            <label for="limitOrthodontist" class="form-label fw-bold small mb-0">矯正歯科医 <span class="badge bg-danger ms-1">必須</span></label>
-                                            <div style="width: 100px;">
-                                                <div class="input-group input-group-sm">
-                                                    <input type="number" class="form-control text-end" id="limitOrthodontist" th:field="*{limitOrthodontist}" min="0" th:errorclass="is-invalid">
-                                                    <span class="input-group-text">枠</span>
-                                                </div>
-                                                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('limitOrthodontist')}" th:errors="*{limitOrthodontist}"></div>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex align-items-center justify-content-between">
-                                            <label for="limitImplantologist" class="form-label fw-bold small mb-0">インプラント医 <span class="badge bg-danger ms-1">必須</span></label>
-                                            <div style="width: 100px;">
-                                                <div class="input-group input-group-sm">
-                                                    <input type="number" class="form-control text-end" id="limitImplantologist" th:field="*{limitImplantologist}" min="0" th:errorclass="is-invalid">
-                                                    <span class="input-group-text">枠</span>
-                                                </div>
-                                                <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('limitImplantologist')}" th:errors="*{limitImplantologist}"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="form-text mb-4">
-                                        同じ時間帯に受け付けられる最大人数を設定します。「0」の場合はその職種の予約を受け付けません。
-                                    </div>
+
 
                                 </div>
                             </div>

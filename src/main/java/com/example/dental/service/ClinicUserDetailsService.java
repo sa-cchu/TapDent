@@ -34,10 +34,11 @@ public class ClinicUserDetailsService implements UserDetailsService {
         // ロール名をGrantedAuthorityに変換（例: ROLE_CLINIC）
         String roleName = clinic.getRole().getRoleName().name();
 
-        return new User(
+        return new com.example.dental.security.ClinicUserDetails(
                 clinic.getLoginId(),
                 clinic.getPassword(),
-                List.of(new SimpleGrantedAuthority(roleName))
+                List.of(new SimpleGrantedAuthority(roleName)),
+                clinic.getName()
         );
     }
 }

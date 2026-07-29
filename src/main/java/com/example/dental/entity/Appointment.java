@@ -45,11 +45,6 @@ public class Appointment {
 	@JoinColumn(name = "patient_id", nullable = true)
 	private Patient patient;
 
-	// 仮患者トークン情報との紐付け（本会員の場合もあるため nullable = true）
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "token_id", nullable = true)
-	private Token token;
-
 	// 診療メニュー情報との紐付け
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "treatment_id", nullable = false)

@@ -14,7 +14,6 @@ import jakarta.persistence.Enumerated;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
-import com.example.dental.enums.TargetStaffType;
 import com.example.dental.enums.TargetPatientType;
 
 import lombok.Getter;
@@ -50,15 +49,10 @@ public class TreatmentType {
     @Column(nullable = false)
     private Boolean status = true;
 
-    // 対象患者（初診、既存、全員）
+    // 対象患者（初診、既存）
     @Enumerated(EnumType.STRING)
     @Column(name = "target_patient_type", nullable = false)
-    private TargetPatientType targetPatientType = TargetPatientType.ALL;
-
-    // どのスタッフの予約枠を消費するか
-    @Enumerated(EnumType.STRING)
-    @Column(name = "target_staff_type", nullable = false)
-    private TargetStaffType targetStaffType = TargetStaffType.NONE;
+    private TargetPatientType targetPatientType;
 
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
