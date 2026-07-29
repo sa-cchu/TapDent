@@ -7,34 +7,40 @@
 
 <body>
     <!-- Sidebar Navigation -->
-    <nav th:fragment="sidebar(activeMenu)" class="col-lg-2 d-none d-lg-block sidebar h-100 overflow-y-auto py-4">
-        <div class="nav flex-column px-3">
-            <a href="/clinic/dashboard" class="sidebar-link"
-                th:classappend="${activeMenu == 'dashboard'} ? 'active' : ''">
-                <i class="bi bi-house-door"></i> ホーム
-            </a>
-            <a href="#" class="sidebar-link" th:classappend="${activeMenu == 'appointments'} ? 'active' : ''">
-                <i class="bi bi-calendar-check"></i> 予約管理
-            </a>
-            <a href="#" class="sidebar-link" th:classappend="${activeMenu == 'patients'} ? 'active' : ''">
-                <i class="bi bi-people"></i> 患者管理
-            </a>
-            <a href="/clinic/treatments" class="sidebar-link"
-                th:classappend="${activeMenu == 'treatments'} ? 'active' : ''">
-                <i class="bi bi-card-list"></i> 診療メニュー
-            </a>
-            <a href="/clinic/chairs" class="sidebar-link"
-                th:classappend="${activeMenu == 'chairs'} ? 'active' : ''">
-                <i class="bi bi-usb-drive"></i> チェア管理
-            </a>
-            <a href="/clinic/basic-info" class="sidebar-link"
-                th:classappend="${activeMenu == 'basic-info'} ? 'active' : ''">
-                <i class="bi bi-building-gear"></i> 基本医院情報
-            </a>
-            <a href="/clinic/settings" class="sidebar-link"
-                th:classappend="${activeMenu == 'settings'} ? 'active' : ''">
-                <i class="bi bi-gear"></i> 設定
-            </a>
+    <nav th:fragment="sidebar(activeMenu)" class="col-lg-2 sidebar h-100 py-4 offcanvas-lg offcanvas-start" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
+        <div class="offcanvas-header d-lg-none px-4">
+            <h5 class="offcanvas-title" id="sidebarMenuLabel"><i class="bi bi-hospital me-2"></i>TapDent</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column p-0">
+            <div class="nav flex-column w-100 px-3">
+                <a href="/clinic/dashboard" class="sidebar-link"
+                    th:classappend="${activeMenu == 'dashboard'} ? 'active' : ''">
+                    <i class="bi bi-house-door"></i> ホーム
+                </a>
+                <a href="#" class="sidebar-link" th:classappend="${activeMenu == 'appointments'} ? 'active' : ''">
+                    <i class="bi bi-calendar-check"></i> 予約管理
+                </a>
+                <a href="#" class="sidebar-link" th:classappend="${activeMenu == 'patients'} ? 'active' : ''">
+                    <i class="bi bi-people"></i> 患者管理
+                </a>
+                <a href="/clinic/treatments" class="sidebar-link"
+                    th:classappend="${activeMenu == 'treatments'} ? 'active' : ''">
+                    <i class="bi bi-card-list"></i> 診療メニュー
+                </a>
+                <a href="/clinic/chairs" class="sidebar-link"
+                    th:classappend="${activeMenu == 'chairs'} ? 'active' : ''">
+                    <i class="bi bi-usb-drive"></i> チェア管理
+                </a>
+                <a href="/clinic/basic-info" class="sidebar-link"
+                    th:classappend="${activeMenu == 'basic-info'} ? 'active' : ''">
+                    <i class="bi bi-building-gear"></i> 基本医院情報
+                </a>
+                <a href="/clinic/settings" class="sidebar-link"
+                    th:classappend="${activeMenu == 'settings'} ? 'active' : ''">
+                    <i class="bi bi-gear"></i> 設定
+                </a>
+            </div>
         </div>
     </nav>
 </body>
