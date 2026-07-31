@@ -28,6 +28,10 @@
                     th:classappend="${activeMenu == 'treatments'} ? 'active' : ''">
                     <i class="bi bi-card-list"></i> 診療メニュー
                 </a>
+                <a href="/clinic/dentists" class="sidebar-link text-nowrap"
+                    th:classappend="${activeMenu == 'dentists'} ? 'active' : ''">
+                    <i class="bi bi-person-badge"></i> 歯科医師管理
+                </a>
                 <a href="/clinic/chairs" class="sidebar-link text-nowrap"
                     th:classappend="${activeMenu == 'chairs'} ? 'active' : ''">
                     <i class="bi bi-usb-drive"></i> チェア管理
