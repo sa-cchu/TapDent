@@ -189,11 +189,11 @@ public class DentalClinicService {
     @Transactional(readOnly = true)
     public List<BusinessHourDto> getBusinessHours(Long dentalId) {
         return businessHourRepository.findByDentalClinicDentalId(dentalId).stream()
-                .map(this::convertBusinessHourToDto)
+                .map(this::toBusinessHourDto)
                 .toList();
     }
 
-    private BusinessHourDto convertBusinessHourToDto(BusinessHour entity) {
+    private BusinessHourDto toBusinessHourDto(BusinessHour entity) {
         BusinessHourDto dto = new BusinessHourDto();
         dto.setBusinessId(entity.getBusinessId());
         if (entity.getDentalClinic() != null) {

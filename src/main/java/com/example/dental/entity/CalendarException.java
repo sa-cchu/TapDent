@@ -5,6 +5,8 @@ import java.time.LocalTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -13,8 +15,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import com.example.dental.enums.ExceptionType;
+
 import lombok.Getter;
 import lombok.Setter;
+import com.example.dental.entity.Dentist;
 
 @Entity
 @Table(name = "calendar_exception")
@@ -36,14 +41,15 @@ public class CalendarException {
     @Column(name = "target_date", nullable = false)
     private LocalDate targetDate;
 
-    // 終日休診フラグ
-    @Column(name = "is_holiday", nullable = false)
-    private Boolean isHoliday = false;
+    // 例外種別（休診 or 特別診療）
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    private ExceptionType type = ExceptionType.HOLIDAY;
 
-    // チェア情報との紐付け（特定のチェアだけ制限する場合があるため nullable = true）
+    // 歯科医師情報との紐付け（特定の医師だけ制限する場合があるため nullable = true）
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chair_id", nullable = true)
-    private DentalChair dentalChair;
+    @JoinColumn(name = "dentist_id", nullable = true)
+    private Dentist dentist;
 
     // 開始時刻（時刻のみのため LocalTime を採用、nullable = true）
     @Column(name = "start_at")
@@ -52,4 +58,12 @@ public class CalendarException {
     // 終了時刻（時刻のみのため LocalTime を採用、nullable = true）
     @Column(name = "end_at")
     private LocalTime endAt;
+
+    // 休憩開始時刻
+    @Column(name = "break_start_at")
+    private LocalTime breakStartAt;
+
+    // 休憩終了時刻
+    @Column(name = "break_end_at")
+    private LocalTime breakEndAt;
 }

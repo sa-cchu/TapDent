@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カレンダー | TapDent</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FullCalendar CSS (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+        /* Navbar (Blue theme) */
+        .navbar-custom {
+            background-color: #0d6efd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .navbar-custom .navbar-brand,
+        .navbar-custom .nav-link {
+            color: #ffffff;
+            font-weight: 500;
+        }
+        .navbar-custom .nav-link:hover {
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* Sidebar layout */
+        @media (min-width: 992px) {
+            .sidebar {
+                min-height: calc(100vh - 56px);
+                border-right: 1px solid #dee2e6;
+                background-color: #fff;
+            }
+        }
+        .sidebar-link {
+            color: #495057;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: #e9ecef;
+            color: #0d6efd;
+            font-weight: 600;
+        }
+
+        #calendar {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* 曜日と休日の色設定 */
+        .fc-day-sun .fc-col-header-cell-cushion, 
+        .fc-day-sun .fc-daygrid-day-number,
+        .fc-holiday .fc-col-header-cell-cushion, 
+        .fc-holiday .fc-daygrid-day-number {
+            color: #dc3545 !important; /* 赤 */
+            text-decoration: none;
+        }
+        .fc-day-sat .fc-col-header-cell-cushion, 
+        .fc-day-sat .fc-daygrid-day-number {
+            color: #0d6efd !important; /* 青 */
+            text-decoration: none;
+        }
+        .fc-day-mon .fc-col-header-cell-cushion, .fc-day-mon .fc-daygrid-day-number,
+        .fc-day-tue .fc-col-header-cell-cushion, .fc-day-tue .fc-daygrid-day-number,
+        .fc-day-wed .fc-col-header-cell-cushion, .fc-day-wed .fc-daygrid-day-number,
+        .fc-day-thu .fc-col-header-cell-cushion, .fc-day-thu .fc-daygrid-day-number,
+        .fc-day-fri .fc-col-header-cell-cushion, .fc-day-fri .fc-daygrid-day-number {
+            color: #333 !important; /* 平日はダークグレー */
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body class="d-flex flex-column vh-100 overflow-hidden">
+    <!-- Header Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container-fluid">
+            <button class="btn btn-outline-light d-lg-none me-2 p-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+            <a class="navbar-brand" href="/clinic/dashboard">
+                <i class="bi bi-hospital me-2"></i>TapDent <span class="fs-6 ms-2 opacity-75">for Clinic</span>
+            </a>
+            <button class="navbar-toggler border-white text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="ナビゲーションを切り替える">
+                <i class="bi bi-list"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                    <li class="nav-item me-3 text-white d-flex align-items-center">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span sec:authentication="principal.clinicName"></span><span class="ms-1">さん</span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/clinic/logout}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid flex-grow-1 overflow-hidden">
+        <div class="row h-100">
+            <!-- Sidebar Navigation -->
+            <nav th:replace="~{clinic/fragments/sidebar :: sidebar('calendar')}"></nav>
+
+            <!-- Main Content Area -->
+            <main class="col-lg-10 h-100 overflow-y-auto py-4 px-lg-5 pb-5">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="h3 mb-0 text-gray-800">診療カレンダー</h1>
+                </div>
+                
+                <div id="calendar"></div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal for Exception -->
+    <div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="eventModalLabel">休診・休み設定</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="eventForm">
+              <div class="mb-3">
+                <label class="form-label">対象日</label>
+                <input type="date" class="form-control" id="targetDate" readonly />
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">例外の種類</label>
+                <div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="exceptionType" id="typeHoliday" value="HOLIDAY" checked>
+                    <label class="form-check-label text-danger" for="typeHoliday">休診</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="exceptionType" id="typeSpecial" value="SPECIAL">
+                    <label class="form-check-label text-success" for="typeSpecial">特別診療</label>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">対象</label>
+                <div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="targetScope" id="scopeAll" value="ALL" checked>
+                    <label class="form-check-label" for="scopeAll">全院</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="targetScope" id="scopeDentist" value="DENTIST">
+                    <label class="form-check-label" for="scopeDentist">特定の歯科医師</label>
+                  </div>
+                </div>
+              </div>
+              <div id="dentistSection" class="mb-3" style="display:none;">
+                <label class="form-label" for="dentistSelect">歯科医師</label>
+                <select class="form-select" id="dentistSelect">
+                  <option value="">-- 選択してください --</option>
+                  <option th:each="dentist : ${dentists}" th:value="${dentist.dentistId}" th:text="${dentist.dentistName}"></option>
+                </select>
+              </div>
+              <div class="form-check mb-2" id="allDayCheckContainer">
+                <input class="form-check-input" type="checkbox" id="allDayCheck" checked>
+                <label class="form-check-label" for="allDayCheck">終日</label>
+              </div>
+              <div id="timeSection" style="display:none;">
+                <div class="row mb-2">
+                  <div class="col">
+                    <label class="form-label" for="startAt">開始時刻</label>
+                    <input type="time" class="form-control" id="startAt" />
+                  </div>
+                  <div class="col">
+                    <label class="form-label" for="endAt">終了時刻</label>
+                    <input type="time" class="form-control" id="endAt" />
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col">
+                    <label class="form-label text-nowrap" for="breakStartAt">休憩開始 (任意)</label>
+                    <input type="time" class="form-control" id="breakStartAt" />
+                  </div>
+                  <div class="col">
+                    <label class="form-label text-nowrap" for="breakEndAt">休憩終了 (任意)</label>
+                    <input type="time" class="form-control" id="breakEndAt" />
+                  </div>
+                </div>
+              </div>
+              <input type="hidden" id="eventId" />
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-danger me-auto" id="deleteBtn" style="display:none;">削除</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+            <button type="button" class="btn btn-primary" id="saveBtn">保存</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <!-- Japanese Holidays JS -->
+    <script src="https://unpkg.com/japanese-holidays@1.0.10/lib/japanese-holidays.min.js"></script>
+    
+    <script th:inline="javascript">
+      /*<![CDATA[*/
+      document.addEventListener('DOMContentLoaded', function() {
+          const calendarEl = document.getElementById('calendar');
+          const csrfHeader = /*[[${_csrf.headerName}]]*/ 'X-CSRF-TOKEN';
+          const csrfToken = /*[[${_csrf.token}]]*/ '';
+          
+          const rawBusinessHours = /*[[${businessHours}]]*/ [];
+          const mapDay = {
+              'SUNDAY': 0, 'MONDAY': 1, 'TUESDAY': 2, 'WEDNESDAY': 3,
+              'THURSDAY': 4, 'FRIDAY': 5, 'SATURDAY': 6
+          };
+          
+          let fcBusinessHours = [];
+          rawBusinessHours.forEach(bh => {
+              if (bh.regularHoliday) return;
+              const dow = [mapDay[bh.dayOfWeek]];
+              if (bh.breakStartAt && bh.breakEndAt) {
+                  fcBusinessHours.push({ daysOfWeek: dow, startTime: bh.openAt, endTime: bh.breakStartAt });
+                  fcBusinessHours.push({ daysOfWeek: dow, startTime: bh.breakEndAt, endTime: bh.closeAt });
+              } else if (bh.openAt && bh.closeAt) {
+                  fcBusinessHours.push({ daysOfWeek: dow, startTime: bh.openAt, endTime: bh.closeAt });
+              }
+          });
+
+          let eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+          let currentEventId = null;
+
+          const calendar = new FullCalendar.Calendar(calendarEl, {
+            locale: 'ja',
+            initialView: 'dayGridMonth',
+            businessHours: fcBusinessHours,
+            headerToolbar: {
+              left: 'prev,next today',
+              center: 'title',
+              right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            selectable: true,
+            dayCellDidMount: function(arg) {
+                if (JapaneseHolidays.isHoliday(arg.date)) {
+                    arg.el.classList.add('fc-holiday');
+                }
+            },
+            dayHeaderDidMount: function(arg) {
+                if (JapaneseHolidays.isHoliday(arg.date)) {
+                    arg.el.classList.add('fc-holiday');
+                }
+            },
+            dateClick: function(info) {
+              openModal(info.dateStr);
+            },
+            eventClick: function(info) {
+              const ev = info.event.extendedProps;
+              openModal(ev.targetDate, ev);
+            },
+            events: function(info, successCallback, failureCallback) {
+              const startStr = info.start.getFullYear() + '-' + String(info.start.getMonth() + 1).padStart(2, '0') + '-' + String(info.start.getDate()).padStart(2, '0');
+              const endStr = info.end.getFullYear() + '-' + String(info.end.getMonth() + 1).padStart(2, '0') + '-' + String(info.end.getDate()).padStart(2, '0');
+              const params = new URLSearchParams({
+                start: startStr,
+                end: endStr
+              });
+              fetch('/clinic/calendar/events?' + params, {
+                  headers: { 'Accept': 'application/json' }
+              })
+              .then(r => r.json())
+              .then(data => {
+                const events = [];
+                data.forEach(e => {
+                  const isHoliday = e.type === 'HOLIDAY';
+                  const isAll = e.dentistId == null;
+                  
+                  let title = '';
+                  if (isHoliday) {
+                      title = isAll ? '全院休診' : (e.dentistName + ' 休み');
+                  } else {
+                      title = isAll ? '全院 特別診療' : (e.dentistName + ' 特別診療');
+                  }
+                  
+                  const isAllDay = e.startAt == null && e.endAt == null;
+                  const color = isHoliday ? (isAll ? '#dc3545' : '#ffc107') : '#198754';
+                  
+                  if (!isAllDay && e.breakStartAt && e.breakEndAt) {
+                      // 休憩がある場合、午前と午後で分割して表示
+                      events.push({
+                          id: e.calendarId + '_am',
+                          title: title,
+                          start: e.targetDate + 'T' + e.startAt,
+                          end: e.targetDate + 'T' + e.breakStartAt,
+                          allDay: false,
+                          color: color,
+                          extendedProps: e
+                      });
+                      events.push({
+                          id: e.calendarId + '_pm',
+                          title: title,
+                          start: e.targetDate + 'T' + e.breakEndAt,
+                          end: e.targetDate + 'T' + e.endAt,
+                          allDay: false,
+                          color: color,
+                          extendedProps: e
+                      });
+                  } else {
+                      events.push({
+                        id: e.calendarId,
+                        title: title,
+                        start: e.targetDate + (e.startAt ? 'T' + e.startAt : ''),
+                        end: e.endAt ? (e.targetDate + 'T' + e.endAt) : null,
+                        allDay: isAllDay,
+                        color: color,
+                        extendedProps: e
+                      });
+                  }
+                });
+                successCallback(events);
+              })
+              .catch(error => {
+                  console.error('Error fetching events:', error);
+                  failureCallback(error);
+              });
+            }
+          });
+          calendar.render();
+
+          const typeRadios = document.querySelectorAll('input[name="exceptionType"]');
+          const scopeRadios = document.querySelectorAll('input[name="targetScope"]');
+          const dentistSection = document.getElementById('dentistSection');
+          const allDayCheck = document.getElementById('allDayCheck');
+          const timeSection = document.getElementById('timeSection');
+
+          function updateFormVisibility() {
+              const type = document.querySelector('input[name="exceptionType"]:checked').value;
+              const scope = document.querySelector('input[name="targetScope"]:checked').value;
+              
+              dentistSection.style.display = (scope === 'DENTIST') ? 'block' : 'none';
+              
+              if (allDayCheck.checked) {
+                  timeSection.style.display = 'none';
+              } else {
+                  timeSection.style.display = 'flex';
+              }
+          }
+
+          typeRadios.forEach(r => r.addEventListener('change', updateFormVisibility));
+          scopeRadios.forEach(r => r.addEventListener('change', updateFormVisibility));
+          allDayCheck.addEventListener('change', updateFormVisibility);
+
+          function openModal(dateStr, existing = null) {
+            document.getElementById('targetDate').value = dateStr;
+            currentEventId = existing ? existing.calendarId : null;
+            document.getElementById('eventId').value = currentEventId || '';
+            
+            if (existing) {
+                document.querySelector(`input[name="exceptionType"][value="${existing.type}"]`).checked = true;
+                const scope = existing.dentistId ? 'DENTIST' : 'ALL';
+                document.querySelector(`input[name="targetScope"][value="${scope}"]`).checked = true;
+                
+                if (existing.dentistId) {
+                    document.getElementById('dentistSelect').value = existing.dentistId;
+                } else {
+                    document.getElementById('dentistSelect').value = '';
+                }
+                
+                if (existing.startAt || existing.endAt) {
+                    allDayCheck.checked = false;
+                    document.getElementById('startAt').value = existing.startAt || '';
+                    document.getElementById('endAt').value = existing.endAt || '';
+                    document.getElementById('breakStartAt').value = existing.breakStartAt || '';
+                    document.getElementById('breakEndAt').value = existing.breakEndAt || '';
+                } else {
+                    allDayCheck.checked = true;
+                    document.getElementById('startAt').value = '';
+                    document.getElementById('endAt').value = '';
+                    document.getElementById('breakStartAt').value = '';
+                    document.getElementById('breakEndAt').value = '';
+                }
+            } else {
+                document.getElementById('typeHoliday').checked = true;
+                document.getElementById('scopeAll').checked = true;
+                document.getElementById('dentistSelect').value = '';
+                allDayCheck.checked = true;
+                document.getElementById('startAt').value = '';
+                document.getElementById('endAt').value = '';
+                document.getElementById('breakStartAt').value = '';
+                document.getElementById('breakEndAt').value = '';
+            }
+            
+            updateFormVisibility();
+            
+            document.getElementById('deleteBtn').style.display = existing ? 'inline-block' : 'none';
+            eventModal.show();
+          }
+
+          document.getElementById('saveBtn').addEventListener('click', () => {
+            const type = document.querySelector('input[name="exceptionType"]:checked').value;
+            const scope = document.querySelector('input[name="targetScope"]:checked').value;
+            const dentistId = document.getElementById('dentistSelect').value;
+            const isAllDay = allDayCheck.checked;
+            const startAt = document.getElementById('startAt').value;
+            const endAt = document.getElementById('endAt').value;
+            const breakStartAt = document.getElementById('breakStartAt').value;
+            const breakEndAt = document.getElementById('breakEndAt').value;
+            
+            if (scope === 'DENTIST' && !dentistId) {
+                alert("歯科医師を選択してください。");
+                return;
+            }
+            if (!isAllDay && (!startAt || !endAt)) {
+                alert("開始時刻と終了時刻を入力してください。");
+                return;
+            }
+
+            const form = {
+              calendarId: currentEventId,
+              targetDate: document.getElementById('targetDate').value,
+              type: type,
+              dentistId: scope === 'ALL' ? null : (dentistId ? dentistId : null),
+              startAt: isAllDay ? null : (startAt ? startAt : null),
+              endAt: isAllDay ? null : (endAt ? endAt : null),
+              breakStartAt: isAllDay ? null : (breakStartAt ? breakStartAt : null),
+              breakEndAt: isAllDay ? null : (breakEndAt ? breakEndAt : null)
+            };
+            
+            fetch('/clinic/calendar/event', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  [csrfHeader]: csrfToken
+              },
+              body: JSON.stringify(form)
+            }).then(async r => {
+                if (r.ok) {
+                    calendar.refetchEvents();
+                    eventModal.hide();
+                } else {
+                    const data = await r.json().catch(() => null);
+                    if (data && data.message) {
+                        alert("保存に失敗しました:\n" + data.message);
+                    } else {
+                        alert("保存に失敗しました。");
+                    }
+                }
+            });
+          });
+
+          document.getElementById('deleteBtn').addEventListener('click', () => {
+            if (currentEventId && confirm('本当に削除しますか？')) {
+              fetch('/clinic/calendar/event/' + currentEventId, {
+                  method: 'DELETE',
+                  headers: {
+                      [csrfHeader]: csrfToken
+                  }
+              }).then(r => {
+                  if (r.ok) {
+                      calendar.refetchEvents();
+                      eventModal.hide();
+                  } else {
+                      alert("削除に失敗しました。");
+                  }
+              });
+            }
+          });
+      });
+      /*]]>*/
+    </script>
+</body>
+</html>

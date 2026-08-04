@@ -36,6 +36,9 @@
                     th:classappend="${activeMenu == 'chairs'} ? 'active' : ''">
                     <i class="bi bi-usb-drive"></i> チェア管理
                 </a>
+                <a href="/clinic/calendar" class="sidebar-link text-nowrap" th:classappend="${activeMenu == 'calendar'} ? 'active' : ''">
+                    <i class="bi bi-calendar-event"></i> カレンダー
+                </a>
                 <a href="/clinic/basic-info" class="sidebar-link text-nowrap"
                     th:classappend="${activeMenu == 'basic-info'} ? 'active' : ''">
                     <i class="bi bi-building-gear"></i> 基本医院情報
