@@ -3,7 +3,6 @@ package com.example.dental.service;
 import com.example.dental.entity.DentalClinic;
 import com.example.dental.repository.DentalClinicRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -38,7 +37,6 @@ public class ClinicUserDetailsService implements UserDetailsService {
                 clinic.getLoginId(),
                 clinic.getPassword(),
                 List.of(new SimpleGrantedAuthority(roleName)),
-                clinic.getName()
-        );
+                clinic.getName());
     }
 }
