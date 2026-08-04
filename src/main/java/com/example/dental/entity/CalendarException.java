@@ -19,7 +19,6 @@ import com.example.dental.enums.ExceptionType;
 
 import lombok.Getter;
 import lombok.Setter;
-import com.example.dental.entity.Dentist;
 
 @Entity
 @Table(name = "calendar_exception")
