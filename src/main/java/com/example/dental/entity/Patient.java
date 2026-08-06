@@ -39,21 +39,30 @@ public class Patient {
     @JoinColumn(name = "dental_id", nullable = false)
     private DentalClinic dentalClinic;
 
-    @Column(name = "patient_code", nullable = false, length = 20)
+    @Column(name = "patient_code", length = 20)
     private String patientCode;
 
-    @Column(nullable = false, length = 50)
+    @Column(name = "pronunciation_guide", nullable = false, length = 50)
+    private String pronunciationGuide;
+
+    @Column(nullable = false, length = 51)
     private String name;
 
     // 生年月日（時分情報は不要なため LocalDate を採用）
     @Column(nullable = false)
     private LocalDate birthday;
 
-    @Column(length = 20)
+    @Column(nullable = false, length = 1)
+    private String gender;
+
+    @Column(nullable = false, length = 20)
     private String tel;
 
-    @Column(length = 255)
+    @Column(nullable = false, length = 255)
     private String email;
+
+    @Column(nullable = false, length = 255)
+    private String password;
 
     // Enumとして管理（DBには文字列として保存）
     @Enumerated(EnumType.STRING)
@@ -69,10 +78,10 @@ public class Patient {
     @Column(name = "login_attempts", nullable = false)
     private Integer loginAttempts = 0;
 
-    // アカウントロック解除日時（ロックされていない場合はnull）
-    @Column(name = "locked_until")
-    private LocalDateTime lockedUntil;
+    // アカウントロック解除日時
+    @Column(name = "locked_untill", nullable = false)
+    private LocalDateTime lockedUntill;
 
-    @Column(name = "is_deleted", nullable = false)
-    private Boolean isDeleted = false;
+    @Column(name = "delete_frag", nullable = false)
+    private Boolean deleteFrag = false;
 }

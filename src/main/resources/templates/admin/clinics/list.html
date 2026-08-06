@@ -310,7 +310,7 @@
 <script>
     function copyUrl(button) {
         const token = button.getAttribute('data-token');
-        const url = window.location.origin + '/clinic/' + token;
+        const url = window.location.origin + '/patient/' + token;
         navigator.clipboard.writeText(url).then(() => {
             alert('公開URLをクリップボードにコピーしました:\n' + url);
         }).catch(err => {

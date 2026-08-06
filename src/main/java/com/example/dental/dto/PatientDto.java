@@ -23,8 +23,8 @@ public class PatientDto {
     // 連続ログイン試行失敗回数
     private Integer loginAttempts;
 
-    // アカウントロック解除日時（ロックされていない場合はnull）
-    private LocalDateTime lockedUntil;
+    // アカウントロック解除日時
+    private LocalDateTime lockedUntill;
 
-    private Boolean isDeleted;
+    private Boolean deleteFrag;
 }

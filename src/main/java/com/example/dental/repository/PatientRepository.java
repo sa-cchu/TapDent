@@ -15,11 +15,11 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
     Optional<Patient> findByDentalClinicDentalIdAndPatientCode(Long dentalId, String patientCode);
 
     // 歯科医院IDで患者一覧を取得（論理削除除外）
-    List<Patient> findByDentalClinicDentalIdAndIsDeletedFalse(Long dentalId);
+    List<Patient> findByDentalClinicDentalIdAndDeleteFragFalse(Long dentalId);
 
     // 歯科医院ID + 診察番号で患者を検索（論理削除除外）
-    Optional<Patient> findByDentalClinicDentalIdAndPatientCodeAndIsDeletedFalse(Long dentalId, String patientCode);
+    Optional<Patient> findByDentalClinicDentalIdAndPatientCodeAndDeleteFragFalse(Long dentalId, String patientCode);
 
     // アカウントロック解除日時が現在より前（ロック解除済み）の患者を検索
-    List<Patient> findByLockedUntilBefore(LocalDateTime now);
+    List<Patient> findByLockedUntillBefore(LocalDateTime now);
 }
