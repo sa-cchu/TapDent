@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import com.example.dental.enums.AppointMethod;
 import com.example.dental.enums.AppointmentStatus;
 
 import lombok.Getter;
@@ -40,21 +41,35 @@ public class AppointmentHistory {
     private DentalChair dentalChair;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "patient_id", nullable = true)
+    @JoinColumn(name = "dentist_id", nullable = false)
+    private Dentist dentist;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "treatment_id", nullable = false)
     private TreatmentType treatmentType;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "appoint_method", nullable = false)
-    private Boolean appointMethod;
+    private AppointMethod appointMethod;
 
     @Column(name = "start_at", nullable = false)
     private LocalDateTime startAt;
 
     @Column(name = "end_at", nullable = false)
     private LocalDateTime endAt;
+
+    @Column(name = "patient_comment", columnDefinition = "TEXT")
+    private String patientComment;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
     @Enumerated(EnumType.ORDINAL)
     @Column(nullable = false)

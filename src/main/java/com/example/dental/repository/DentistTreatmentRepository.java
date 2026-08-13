@@ -11,5 +11,9 @@ import java.util.List;
 public interface DentistTreatmentRepository extends JpaRepository<DentistTreatment, Long> {
     List<DentistTreatment> findByDentist(Dentist dentist);
     
+    List<DentistTreatment> findByTreatmentType(com.example.dental.entity.TreatmentType treatmentType);
+    
+    int countByDentist(Dentist dentist);
+
     void deleteByDentist(Dentist dentist);
 }

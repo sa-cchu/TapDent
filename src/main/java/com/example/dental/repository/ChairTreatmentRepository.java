@@ -13,6 +13,8 @@ import com.example.dental.entity.DentalChair;
 @Repository
 public interface ChairTreatmentRepository extends JpaRepository<ChairTreatment, Long> {
     List<ChairTreatment> findByDentalChair(DentalChair chair);
+
+    List<ChairTreatment> findByTreatmentType(com.example.dental.entity.TreatmentType treatmentType);
     
     @Modifying
     @Query("DELETE FROM ChairTreatment ct WHERE ct.dentalChair = :chair")

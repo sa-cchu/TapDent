@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title>ご予約 | TapDent</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Noto Sans JP', sans-serif; }
+        .reserve-container { max-width: 600px; margin: 2rem auto; }
+        .step-indicator { display: flex; justify-content: space-between; margin-bottom: 2rem; position: relative; }
+        .step-indicator::before {
+            content: ''; position: absolute; top: 50%; left: 0; right: 0;
+            height: 2px; background: #e9ecef; z-index: 1; transform: translateY(-50%);
+        }
+        .step-dot {
+            width: 30px; height: 30px; border-radius: 50%; background: #e9ecef;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem; font-weight: bold; color: #6c757d; z-index: 2;
+        }
+        .step-dot.active { background: #0d6efd; color: white; }
+        .menu-card { cursor: pointer; transition: all 0.2s; }
+        .menu-card:hover { border-color: #0d6efd; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .menu-input { display: none; }
+        .menu-input:checked + .card { border-color: #0d6efd; background-color: #f0f7ff; }
+        .time-slot { cursor: pointer; text-align: center; padding: 10px; border: 1px solid #dee2e6; border-radius: 8px; transition: all 0.2s; }
+        .time-slot:hover { border-color: #0d6efd; background-color: #f0f7ff; }
+        .time-input { display: none; }
+        .time-input:checked + .time-slot { background-color: #0d6efd; color: white; border-color: #0d6efd; }
+        
+        .calendar-day { cursor: pointer; padding: 10px 0; border-radius: 8px; transition: all 0.2s; position: relative; }
+        .calendar-day:hover:not(.disabled) { background-color: #f0f7ff; }
+        .calendar-day.disabled { cursor: not-allowed; opacity: 0.5; }
+        .calendar-day.selected { background-color: #0d6efd; color: white; }
+        .calendar-day .day-num { font-size: 1.1rem; font-weight: bold; }
+        .calendar-day .status { font-size: 0.9rem; margin-top: 2px; }
+        .calendar-day .status.circle { color: #198754; font-weight: bold; }
+        .calendar-day.selected .status.circle { color: white; }
+        .calendar-day .status.cross { color: #dc3545; font-weight: bold; }
+        .calendar-day.selected .status.cross { color: white; }
+        .calendar-row { display: flex; }
+        .calendar-col { flex: 1; text-align: center; margin: 2px; }
+        
+        .step-content { display: none; }
+        .step-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container reserve-container">
+        <h2 class="text-center mb-4" id="clinicNameTitle">歯科医院 ご予約</h2>
+        
+        <div id="loadingOverlay" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">読み込み中...</p>
+        </div>
+
+        <div id="reservationApp" class="d-none">
+            <div class="step-indicator" id="stepIndicator">
+                <div class="step-dot active" id="dot1">1</div>
+                <div class="step-dot" id="dot2">2</div>
+                <div class="step-dot" id="dot3">3</div>
+                <div class="step-dot" id="dot4">4</div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    
+                    <!-- Alert Area -->
+                    <div id="alertArea" class="alert alert-danger d-none"></div>
+
+                    <!-- Step 1: Menu -->
+                    <div id="step1" class="step-content active">
+                        <h4 class="mb-4">ご希望の診療メニューを選択してください</h4>
+                        <div class="row g-3 mb-4" id="treatmentsContainer"></div>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary btn-lg" id="btnNext1" disabled>日時選択へ進む</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Date Time -->
+                    <div id="step2" class="step-content">
+                        <h4 class="mb-4">ご希望の日時を選択してください</h4>
+                        <div class="alert alert-info py-2 mb-4">
+                            <strong>選択中メニュー:</strong> <span id="selectedTreatmentName"></span>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">日付を選択</label>
+                            <div class="calendar-container border rounded p-3 bg-white shadow-sm">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnPrevMonth">&lt; 前月</button>
+                                    <h5 class="mb-0 fw-bold" id="calendarMonthLabel"></h5>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnNextMonth">次月 &gt;</button>
+                                </div>
+                                <div class="row g-0 text-center fw-bold text-muted mb-2">
+                                    <div class="col text-danger">日</div>
+                                    <div class="col">月</div>
+                                    <div class="col">火</div>
+                                    <div class="col">水</div>
+                                    <div class="col">木</div>
+                                    <div class="col">金</div>
+                                    <div class="col text-primary">土</div>
+                                </div>
+                                <div id="calendarGrid">
+                                    <!-- JS generates calendar days -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">時間を選択</label>
+                            <div id="loadingSlots" class="text-center py-4 d-none">
+                                <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                            </div>
+                            <div id="noSlots" class="alert alert-warning d-none">
+                                選択した日付には予約可能な空き枠がありません。別の日付をお試しください。
+                            </div>
+                            <div class="row g-2" id="timeSlotsContainer"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary" onclick="goToStep(1)">戻る</button>
+                            <button type="button" class="btn btn-primary px-4" id="btnNext2" disabled>次へ進む</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Info -->
+                    <div id="step3" class="step-content">
+                        <h4 class="mb-4">患者情報のご入力</h4>
+                        <div class="alert alert-info py-2 mb-4">
+                            <div class="fw-bold">ご予約内容</div>
+                            <div>日時：<span id="selectedDateTimeLabel"></span></div>
+                            <div>メニュー：<span id="selectedTreatmentName2"></span></div>
+                        </div>
+                        <form id="infoForm" class="needs-validation" novalidate>
+                            <div class="mb-3">
+                                <label class="form-label">フリガナ（全角カナ）<span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="formKana" required pattern="^[ァ-ヶー]+$" title="全角カタカナで入力してください">
+                                <div class="invalid-feedback">全角カタカナで入力してください</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">お名前（全角）<span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="formName" required>
+                                <div class="invalid-feedback">お名前を入力してください</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">生年月日<span class="text-danger">*</span></label>
+                                <div class="d-flex align-items-center">
+                                    <select class="form-select me-2" id="formBirthYear" required></select>
+                                    <span class="me-3">年</span>
+                                    <select class="form-select me-2" id="formBirthMonth" required></select>
+                                    <span class="me-3">月</span>
+                                    <select class="form-select me-2" id="formBirthDay" required></select>
+                                    <span>日</span>
+                                </div>
+                                <div class="invalid-feedback birth-feedback" style="display: none; color: var(--bs-form-invalid-color); font-size: 0.875em; margin-top: 0.25rem;">生年月日をすべて選択してください</div>
+                                <input type="hidden" id="formBirthday">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">性別<span class="text-danger">*</span></label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="formGender" value="1" id="gender1" checked required>
+                                        <label class="form-check-label" for="gender1">男性</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="formGender" value="2" id="gender2" required>
+                                        <label class="form-check-label" for="gender2">女性</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">電話番号（ハイフンなし）<span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control" id="formTel" required pattern="^(090|080|070)[0-9]{8}$" title="携帯電話番号（090, 080, 070から始まる11桁）で入力してください">
+                                <div class="invalid-feedback">090, 080, 070から始まる11桁の半角数字で入力してください</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">メールアドレス<span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="formEmail" required pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$" title="正しいメールアドレス形式で入力してください">
+                                <div class="invalid-feedback">正しいメールアドレス形式で入力してください</div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label">医院へのメッセージ（任意）</label>
+                                <textarea class="form-control" id="formComment" rows="3"></textarea>
+                            </div>
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary" onclick="goToStep(2)">戻る</button>
+                                <button type="button" class="btn btn-primary px-4" id="btnNext3">確認画面へ</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Step 4: Confirm -->
+                    <div id="step4" class="step-content">
+                        <h4 class="mb-4">ご予約内容の確認</h4>
+                        <div class="card mb-4 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title fw-bold border-bottom pb-2">ご予約情報</h5>
+                                <table class="table table-borderless">
+                                    <tbody>
+                                        <tr><th style="width: 30%">診療メニュー</th><td id="confirmTreatment"></td></tr>
+                                        <tr><th>予約日時</th><td id="confirmDateTime"></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card mb-4 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title fw-bold border-bottom pb-2">患者様情報</h5>
+                                <table class="table table-borderless">
+                                    <tbody>
+                                        <tr><th>フリガナ</th><td id="confirmKana"></td></tr>
+                                        <tr><th>お名前</th><td id="confirmName"></td></tr>
+                                        <tr><th>生年月日</th><td id="confirmBirthday"></td></tr>
+                                        <tr><th>性別</th><td id="confirmGender"></td></tr>
+                                        <tr><th>電話番号</th><td id="confirmTel"></td></tr>
+                                        <tr><th>メールアドレス</th><td id="confirmEmail"></td></tr>
+                                        <tr><th>メッセージ</th><td id="confirmComment" style="white-space: pre-wrap;"></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary" onclick="goToStep(3)">戻る</button>
+                            <button type="button" class="btn btn-primary px-4" id="btnNext4">認証コードを送信する</button>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: Verify -->
+                    <div id="step5" class="step-content">
+                        <h4 class="mb-4 text-center">メール認証</h4>
+                        <p>
+                            ご入力いただいたメールアドレス（<strong id="displayEmail"></strong>）宛に、4桁の認証コードを送信しました。<br>
+                            メールに記載されている認証コードを入力して、予約を完了してください。
+                        </p>
+                        <p class="text-danger small">※認証コードの有効期限は送信後15分間です。</p>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">認証コード</label>
+                            <input type="text" class="form-control form-control-lg text-center" id="formCode" placeholder="0000" maxlength="4" style="letter-spacing: 10px; font-size: 1.5rem;">
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary" onclick="goToStep(4)">戻る</button>
+                            <button type="button" class="btn btn-primary px-5" id="btnSubmit">予約を確定する</button>
+                        </div>
+                    </div>
+
+                    <!-- Complete -->
+                    <div id="stepComplete" class="step-content text-center py-4">
+                        <div style="font-size: 4rem; color: #198754; margin-bottom: 1rem;">✓</div>
+                        <h3 class="mb-4">ご予約が完了しました</h3>
+                        <p class="mb-4">
+                            ご入力いただいたメールアドレス宛に予約完了メールを送信いたしました。<br>
+                            ご来院の際は、保険証と本人確認書類をお持ちください。
+                        </p>
+                        <div class="mt-5">
+                            <a href="/" class="btn btn-primary btn-lg" id="btnReturnTop">トップへ戻る</a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const token = /*[[${token}]]*/ 'token';
+        const state = {
+            treatmentId: null,
+            treatmentName: null,
+            reservationDate: null,
+            reservationTime: null,
+            maxReserveMonth: 3,
+            reservationRestrictions: false,
+            currentViewYear: new Date().getFullYear(),
+            currentViewMonth: new Date().getMonth() + 1,
+            patient: null
+        };
+
+        const elApp = document.getElementById('reservationApp');
+        const elLoading = document.getElementById('loadingOverlay');
+        const elAlert = document.getElementById('alertArea');
+        const elTitle = document.getElementById('clinicNameTitle');
+
+        fetch(`/reserve/${token}/api/init`)
+            .then(res => res.json())
+            .then(data => {
+                state.maxReserveMonth = data.maxReserveMonth;
+                state.reservationRestrictions = data.reservationRestrictions;
+                elTitle.innerText = data.clinicName + ' ご予約';
+                renderTreatments(data.treatments);
+                elLoading.classList.add('d-none');
+                elApp.classList.remove('d-none');
+                initBirthdaySelects();
+                if (data.patient) {
+                    state.patient = data.patient;
+                    document.getElementById('formName').value = data.patient.name;
+                    document.getElementById('formKana').value = data.patient.kana;
+                    const [y, m, d] = data.patient.birthday.split('-');
+                    document.getElementById('formBirthYear').value = y;
+                    document.getElementById('formBirthMonth').value = m;
+                    document.getElementById('formBirthDay').value = d;
+                    const genderRadio = document.querySelector(`input[name="formGender"][value="${data.patient.gender}"]`);
+                    if (genderRadio) genderRadio.checked = true;
+                    document.getElementById('formTel').value = data.patient.tel;
+                    document.getElementById('formEmail').value = data.patient.email;
+                }
+            })
+            .catch(err => showError('初期データの取得に失敗しました。'));
+
+        function renderTreatments(treatments) {
+            const container = document.getElementById('treatmentsContainer');
+            if (treatments.length === 0) {
+                container.innerHTML = '<p class="text-muted">現在、選択可能な診療メニューがありません。</p>';
+                return;
+            }
+            let html = '';
+            treatments.forEach(t => {
+                html += `
+                <div class="col-12">
+                    <label class="w-100">
+                        <input type="radio" name="treatmentId" class="menu-input" value="${t.treatmentId}" data-name="${t.treatmentName}">
+                        <div class="card menu-card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary">${t.treatmentName}</h5>
+                                <small class="text-secondary">所要目安: ${t.requiredMinutes}分</small>
+                            </div>
+                        </div>
+                    </label>
+                </div>`;
+            });
+            container.innerHTML = html;
+            
+            document.querySelectorAll('input[name="treatmentId"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    state.treatmentId = e.target.value;
+                    state.treatmentName = e.target.getAttribute('data-name');
+                    document.getElementById('btnNext1').disabled = false;
+                });
+            });
+        }
+
+        function goToStep(step) {
+            elAlert.classList.add('d-none');
+            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.step-dot').forEach((el, index) => {
+                if (index < step) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+            
+            if (step === 2) {
+                document.getElementById('selectedTreatmentName').innerText = state.treatmentName;
+                renderCalendar();
+                if (state.reservationDate) {
+                    fetchSlots(state.reservationDate);
+                } else {
+                    document.getElementById('timeSlotsContainer').innerHTML = '';
+                    document.getElementById('btnNext2').disabled = true;
+                }
+            } else if (step === 3) {
+                document.getElementById('selectedDateTimeLabel').innerText = `${state.reservationDate} ${state.reservationTime}`;
+                document.getElementById('selectedTreatmentName2').innerText = state.treatmentName;
+            } else if (step === 4) {
+                const formEl = document.getElementById('infoForm');
+                
+                const y = document.getElementById('formBirthYear').value;
+                const m = document.getElementById('formBirthMonth').value;
+                const d = document.getElementById('formBirthDay').value;
+                
+                const birthFeedback = document.querySelector('.birth-feedback');
+                let isBirthValid = true;
+                if (!y || !m || !d) {
+                    isBirthValid = false;
+                    birthFeedback.style.display = 'block';
+                } else {
+                    birthFeedback.style.display = 'none';
+                }
+
+                if (!formEl.checkValidity() || !isBirthValid) {
+                    formEl.classList.add('was-validated');
+                    document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+                    document.getElementById('step3').classList.add('active');
+                    return;
+                }
+                const bday = `${y}-${m}-${d}`;
+                document.getElementById('formBirthday').value = bday;
+                document.getElementById('confirmTreatment').innerText = state.treatmentName;
+                document.getElementById('confirmDateTime').innerText = `${state.reservationDate} ${state.reservationTime}`;
+                document.getElementById('confirmName').innerText = document.getElementById('formName').value;
+                document.getElementById('confirmKana').innerText = document.getElementById('formKana').value;
+                document.getElementById('confirmBirthday').innerText = bday;
+                const genderVal = document.querySelector('input[name="formGender"]:checked').value;
+                document.getElementById('confirmGender').innerText = genderVal === '1' ? '男性' : '女性';
+                document.getElementById('confirmTel').innerText = document.getElementById('formTel').value;
+                document.getElementById('confirmEmail').innerText = document.getElementById('formEmail').value;
+                document.getElementById('confirmComment').innerText = document.getElementById('formComment').value;
+                
+                // メールアドレスが変更されていなければ、ボタンのテキストを「予約を確定する」に変更
+                const btnNext4 = document.getElementById('btnNext4');
+                if (state.patient && state.patient.email === document.getElementById('formEmail').value) {
+                    btnNext4.innerText = '予約を確定する';
+                } else {
+                    btnNext4.innerText = '認証コードを送信する';
+                }
+            } else if (step === 5) {
+                document.getElementById('displayEmail').innerText = document.getElementById('formEmail').value;
+                document.getElementById('formCode').value = '';
+            }
+
+            document.getElementById(`step${step}`).classList.add('active');
+        }
+
+        function showError(msg) {
+            elAlert.innerHTML = Array.isArray(msg) ? msg.join('<br>') : msg;
+            elAlert.classList.remove('d-none');
+            window.scrollTo(0, 0);
+        }
+
+        document.getElementById('btnNext1').addEventListener('click', () => goToStep(2));
+        document.getElementById('btnNext2').addEventListener('click', () => goToStep(3));
+        document.getElementById('btnNext3').addEventListener('click', () => goToStep(4));
+        document.getElementById('btnNext4').addEventListener('click', () => sendVerificationCode());
+        
+        function sendVerificationCode() {
+            const email = document.getElementById('formEmail').value;
+            if (state.patient && state.patient.email === email) {
+                submitReservationExisting();
+                return;
+            }
+
+            const btn = document.getElementById('btnNext4');
+            const originalText = btn.innerText;
+            btn.disabled = true; btn.innerText = '送信中...';
+            
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+            fetch(`/reserve/${token}/api/send-code`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    [csrfHeader]: csrfToken
+                },
+                body: JSON.stringify({ email: email })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    goToStep(5);
+                } else {
+                    showError(data.message || '認証コードの送信に失敗しました。');
+                }
+            })
+            .catch(() => showError('通信エラーが発生しました。'))
+            .finally(() => { btn.disabled = false; btn.innerText = originalText; });
+        }
+
+        function submitReservationExisting() {
+            const btn = document.getElementById('btnNext4');
+            btn.disabled = true; btn.innerText = '予約処理中...';
+            
+            const payload = {
+                treatmentId: state.treatmentId,
+                reservationDate: state.reservationDate,
+                reservationTime: state.reservationTime,
+                name: document.getElementById('formName').value,
+                pronunciationGuide: document.getElementById('formKana').value,
+                birthday: document.getElementById('formBirthday').value,
+                gender: document.querySelector('input[name="formGender"]:checked').value,
+                tel: document.getElementById('formTel').value,
+                email: document.getElementById('formEmail').value,
+                patientComment: document.getElementById('formComment').value
+            };
+            
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+            fetch(`/reserve/${token}/api/reserve-existing`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    [csrfHeader]: csrfToken
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // 既存患者の場合は戻り先をダッシュボードにする
+                    if (state.patient) {
+                        document.getElementById('btnReturnTop').href = `/patient/${token}/dashboard`;
+                    }
+                    document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+                    document.getElementById('stepIndicator').classList.add('d-none');
+                    document.getElementById('stepComplete').classList.add('active');
+                    window.scrollTo(0, 0);
+                } else {
+                    showError(data.message || '予約の確定に失敗しました。');
+                    btn.disabled = false; btn.innerText = '予約を確定する';
+                }
+            })
+            .catch(err => {
+                showError('通信エラーが発生しました。');
+                btn.disabled = false; btn.innerText = '予約を確定する';
+            });
+        }
+
+        document.getElementById('btnSubmit').addEventListener('click', () => {
+            const code = document.getElementById('formCode').value;
+            if (!code) return;
+            const payload = {
+                treatmentId: state.treatmentId,
+                reservationDate: state.reservationDate,
+                reservationTime: state.reservationTime,
+                name: document.getElementById('formName').value,
+                pronunciationGuide: document.getElementById('formKana').value,
+                birthday: document.getElementById('formBirthday').value,
+                gender: document.querySelector('input[name="formGender"]:checked').value,
+                tel: document.getElementById('formTel').value,
+                email: document.getElementById('formEmail').value,
+                patientComment: document.getElementById('formComment').value,
+                inputVerificationCode: code
+            };
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true; btn.innerText = '処理中...';
+            
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+            fetch(`/reserve/${token}/api/confirm`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    [csrfHeader]: csrfToken
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (state.patient) {
+                        document.getElementById('btnReturnTop').href = `/patient/${token}/dashboard`;
+                    }
+                    document.getElementById('stepIndicator').classList.add('d-none');
+                    document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+                    document.getElementById('stepComplete').classList.add('active');
+                } else {
+                    let errMsg = data.message || '予約に失敗しました';
+                    if (data.fieldErrors) {
+                        errMsg += '<br><ul class="mb-0 text-start"><li>' + Object.values(data.fieldErrors).join('</li><li>') + '</li></ul>';
+                    }
+                    showError(errMsg);
+                }
+            })
+            .catch(() => showError('通信エラーが発生しました'))
+            .finally(() => { btn.disabled = false; btn.innerText = '予約を確定する'; });
+        });
+        
+        function initBirthdaySelects() {
+            const yearSelect = document.getElementById('formBirthYear');
+            const monthSelect = document.getElementById('formBirthMonth');
+            const daySelect = document.getElementById('formBirthDay');
+            const currentYear = new Date().getFullYear();
+            yearSelect.innerHTML = '<option value="">選択</option>';
+            for (let y = currentYear; y >= 1900; y--) yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+            monthSelect.innerHTML = '<option value="">選択</option>';
+            for (let m = 1; m <= 12; m++) monthSelect.innerHTML += `<option value="${String(m).padStart(2, '0')}">${m}</option>`;
+            daySelect.innerHTML = '<option value="">選択</option>';
+            for (let d = 1; d <= 31; d++) daySelect.innerHTML += `<option value="${String(d).padStart(2, '0')}">${d}</option>`;
+        }
+
+        document.getElementById('btnPrevMonth').addEventListener('click', () => {
+            const current = new Date();
+            const minDate = new Date(current.getFullYear(), current.getMonth(), 1);
+            const viewDate = new Date(state.currentViewYear, state.currentViewMonth - 1, 1);
+            
+            if (viewDate > minDate) {
+                state.currentViewMonth--;
+                if (state.currentViewMonth < 1) {
+                    state.currentViewMonth = 12;
+                    state.currentViewYear--;
+                }
+                renderCalendar();
+            }
+        });
+
+        document.getElementById('btnNextMonth').addEventListener('click', () => {
+            const current = new Date();
+            const maxDate = new Date(current.getFullYear(), current.getMonth() + state.maxReserveMonth, 1);
+            const viewDate = new Date(state.currentViewYear, state.currentViewMonth - 1, 1);
+            
+            if (viewDate < maxDate) {
+                state.currentViewMonth++;
+                if (state.currentViewMonth > 12) {
+                    state.currentViewMonth = 1;
+                    state.currentViewYear++;
+                }
+                renderCalendar();
+            }
+        });
+
+        function renderCalendar() {
+            document.getElementById('calendarMonthLabel').innerText = `${state.currentViewYear}年 ${state.currentViewMonth}月`;
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+            
+            fetch(`/reserve/${token}/api/calendar?year=${state.currentViewYear}&month=${state.currentViewMonth}&treatmentId=${state.treatmentId}`)
+                .then(res => res.json())
+                .then(statusMap => {
+                    const firstDay = new Date(state.currentViewYear, state.currentViewMonth - 1, 1);
+                    const lastDay = new Date(state.currentViewYear, state.currentViewMonth, 0);
+                    
+                    let html = '<div class="calendar-row">';
+                    for (let i = 0; i < firstDay.getDay(); i++) {
+                        html += '<div class="calendar-col"></div>';
+                    }
+                    
+                    for (let d = 1; d <= lastDay.getDate(); d++) {
+                        const dateStr = `${state.currentViewYear}-${String(state.currentViewMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                        const status = statusMap[dateStr] || '-';
+                        
+                        let dayClass = 'calendar-day';
+                        if (status === '-' || status === '×') dayClass += ' disabled';
+                        if (state.reservationDate === dateStr) dayClass += ' selected';
+                        
+                        let statusHtml = '';
+                        if (status === '○') statusHtml = '<div class="status circle">〇</div>';
+                        else if (status === '×') statusHtml = '<div class="status cross">×</div>';
+                        else statusHtml = '<div class="status">-</div>';
+
+                        if ((firstDay.getDay() + d - 1) % 7 === 0 && d !== 1) {
+                            html += '</div><div class="calendar-row">';
+                        }
+                        
+                        html += `
+                        <div class="calendar-col">
+                            <div class="${dayClass}" onclick="${(status === '○') ? `selectDate('${dateStr}')` : ''}">
+                                <div class="day-num">${d}</div>
+                                ${statusHtml}
+                            </div>
+                        </div>`;
+                    }
+                    
+                    const remainingCells = 7 - ((firstDay.getDay() + lastDay.getDate()) % 7);
+                    if (remainingCells < 7) {
+                        for (let i = 0; i < remainingCells; i++) {
+                            html += '<div class="calendar-col"></div>';
+                        }
+                    }
+                    html += '</div>';
+                    grid.innerHTML = html;
+                })
+                .catch(() => {
+                    grid.innerHTML = '<div class="text-danger text-center py-3">カレンダーの読み込みに失敗しました</div>';
+                });
+        }
+
+        function selectDate(dateStr) {
+            state.reservationDate = dateStr;
+            state.reservationTime = null;
+            document.getElementById('btnNext2').disabled = true;
+            document.getElementById('selectedDateTimeLabel').innerText = '';
+            
+            renderCalendar();
+            fetchSlots(dateStr);
+        }
+
+        function fetchSlots(dateStr) {
+            const container = document.getElementById('timeSlotsContainer');
+            const noSlots = document.getElementById('noSlots');
+            const loading = document.getElementById('loadingSlots');
+            
+            container.innerHTML = '';
+            noSlots.classList.add('d-none');
+            loading.classList.remove('d-none');
+            
+            fetch(`/reserve/${token}/api/slots?date=${dateStr}&treatmentId=${state.treatmentId}`)
+                .then(res => res.json())
+                .then(slots => {
+                    loading.classList.add('d-none');
+                    if (!slots || slots.length === 0) {
+                        noSlots.classList.remove('d-none');
+                        return;
+                    }
+                    
+                    let html = '';
+                    slots.forEach(time => {
+                        const timeShort = time.substring(0, 5); // HH:mm
+                        html += `
+                        <div class="col-4 col-sm-3">
+                            <label class="w-100 h-100">
+                                <input type="radio" name="slotTime" class="time-input" value="${timeShort}">
+                                <div class="time-slot h-100 d-flex align-items-center justify-content-center">
+                                    ${timeShort}
+                                </div>
+                            </label>
+                        </div>`;
+                    });
+                    container.innerHTML = html;
+                    
+                    document.querySelectorAll('input[name="slotTime"]').forEach(radio => {
+                        radio.addEventListener('change', (e) => {
+                            state.reservationTime = e.target.value;
+                            document.getElementById('btnNext2').disabled = false;
+                            document.getElementById('selectedDateTimeLabel').innerText = `${state.reservationDate} ${state.reservationTime}`;
+                        });
+                    });
+                })
+                .catch(() => {
+                    loading.classList.add('d-none');
+                    container.innerHTML = '<div class="col-12 text-danger">空き時間の取得に失敗しました</div>';
+                });
+        }
+    </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 package com.example.dental.dto;
 
+import com.example.dental.enums.AppointMethod;
 import com.example.dental.enums.AppointmentStatus;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,11 +13,14 @@ public class AppointmentDto {
     private Long appointmentId;
     private Long dentalId;
     private Long chairId;
+    private Long dentistId;
     private Long patientId;
     private Long treatmentId;
-    private Boolean appointMethod;
+    private AppointMethod appointMethod;
     private LocalDateTime startAt;
     private LocalDateTime endAt;
-    private LocalDateTime updateAt;
+    private String patientComment;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private AppointmentStatus status;
 }

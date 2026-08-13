@@ -102,10 +102,38 @@ public class SecurityConfig {
     }
 
     /**
-     * その他のアクセス(静的リソースなど)向けのSecurityFilterChain
+     * 患者(Patient)向けのSecurityFilterChain
+     * トークンベースの動的URLのため、未認証時はパスからトークンを抽出してログイン画面へリダイレクトする
      */
     @Bean
     @Order(3)
+    public SecurityFilterChain patientFilterChain(HttpSecurity http) throws Exception {
+        http.securityMatcher("/patient/**")
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/patient/*/login", "/patient/*/register").permitAll()
+                .requestMatchers("/patient/**").authenticated()
+            )
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) -> {
+                    String uri = request.getRequestURI();
+                    String[] parts = uri.split("/");
+                    if (parts.length >= 3 && "patient".equals(parts[1])) {
+                        String token = parts[2];
+                        response.sendRedirect("/patient/" + token + "/login");
+                    } else {
+                        response.sendRedirect("/");
+                    }
+                })
+            );
+
+        return http.build();
+    }
+
+    /**
+     * その他のアクセス(静的リソースなど)向けのSecurityFilterChain
+     */
+    @Bean
+    @Order(4)
     public SecurityFilterChain defaultFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(auth -> auth
             .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()

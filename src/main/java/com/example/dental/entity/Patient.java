@@ -82,6 +82,6 @@ public class Patient {
     @Column(name = "locked_untill", nullable = false)
     private LocalDateTime lockedUntill;
 
-    @Column(name = "delete_frag", nullable = false)
-    private Boolean deleteFrag = false;
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
 }

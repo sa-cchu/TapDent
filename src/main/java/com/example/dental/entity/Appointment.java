@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import com.example.dental.enums.AppointMethod;
 import com.example.dental.enums.AppointmentStatus;
 
 import lombok.Getter;
@@ -40,9 +41,14 @@ public class Appointment {
 	@JoinColumn(name = "chair_id", nullable = false)
 	private DentalChair dentalChair;
 
-	// 患者情報との紐付け（仮患者の場合もあるため nullable = true）
+	// 歯科医師との紐付け
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "patient_id", nullable = true)
+	@JoinColumn(name = "dentist_id", nullable = false)
+	private Dentist dentist;
+
+	// 患者情報との紐付け（必須）
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "patient_id", nullable = false)
 	private Patient patient;
 
 	// 診療メニュー情報との紐付け
@@ -50,9 +56,10 @@ public class Appointment {
 	@JoinColumn(name = "treatment_id", nullable = false)
 	private TreatmentType treatmentType;
 
-	// 予約方法（TRUE:オンライン予約、FALSE：オフライン予約）
+	// 予約方法
+	@Enumerated(EnumType.STRING)
 	@Column(name = "appoint_method", nullable = false)
-	private Boolean appointMethod;
+	private AppointMethod appointMethod;
 
 	@Column(name = "start_at", nullable = false)
 	private LocalDateTime startAt;
@@ -60,9 +67,17 @@ public class Appointment {
 	@Column(name = "end_at", nullable = false)
 	private LocalDateTime endAt;
 
+	// 予約時のコメント
+	@Column(name = "patient_comment", columnDefinition = "TEXT")
+	private String patientComment;
+
+	// 作成日時
+	@Column(name = "created_at", nullable = false, updatable = false)
+	private LocalDateTime createdAt;
+
 	// 更新日時
-	@Column(name = "update_at", nullable = false)
-	private LocalDateTime updateAt;
+	@Column(name = "updated_at", nullable = false)
+	private LocalDateTime updatedAt;
 
 	// ステータス（Enumをインデックス（数字）としてDBに保存）
 	@Enumerated(EnumType.ORDINAL)
