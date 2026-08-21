@@ -110,6 +110,7 @@ public class SecurityConfig {
     public SecurityFilterChain patientFilterChain(HttpSecurity http) throws Exception {
         http.securityMatcher("/patient/**")
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/patient/*").permitAll()
                 .requestMatchers("/patient/*/login", "/patient/*/register").permitAll()
                 .requestMatchers("/patient/**").authenticated()
             )

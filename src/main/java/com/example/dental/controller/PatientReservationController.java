@@ -76,7 +76,7 @@ public class PatientReservationController {
         
         TargetPatientType targetType = (userDetails != null) ? TargetPatientType.EXISTING : TargetPatientType.FIRST_VISIT;
         
-        List<TreatmentType> treatments = treatmentTypeRepository.findByDentalClinic(clinic)
+        List<TreatmentType> treatments = treatmentTypeRepository.findByDentalClinicAndIsDeletedFalse(clinic)
                 .stream()
                 .filter(t -> t.getTargetPatientType() == targetType)
                 .collect(Collectors.toList());
@@ -95,6 +95,9 @@ public class PatientReservationController {
             patientData.put("gender", userDetails.getPatient().getGender());
             patientData.put("tel", userDetails.getPatient().getTel());
             patientData.put("email", userDetails.getPatient().getEmail());
+            if (userDetails.getPatient().getPatientCode() != null) {
+                patientData.put("patientCode", userDetails.getPatient().getPatientCode());
+            }
             response.put("patient", patientData);
         }
         
@@ -114,7 +117,7 @@ public class PatientReservationController {
         LocalDate firstDayOfMonth = LocalDate.of(year, month, 1);
         LocalDate lastDayOfMonth = firstDayOfMonth.withDayOfMonth(firstDayOfMonth.lengthOfMonth());
         
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Tokyo"));
         int maxMonths = clinic.getMaxReserveMonth() != null ? clinic.getMaxReserveMonth() : 3;
         LocalDate maxAllowedDate = today.plusMonths(maxMonths);
         
@@ -135,9 +138,14 @@ public class PatientReservationController {
                 continue;
             }
             
+            if (appointmentService.isClinicHoliday(clinic, date)) {
+                statusMap.put(dateStr, "-");
+                continue;
+            }
+            
             List<LocalTime> slots = appointmentService.getAvailableTimeSlots(clinic, date, treatment);
             if (date.isEqual(today)) {
-                LocalTime now = LocalTime.now();
+                LocalTime now = LocalTime.now(java.time.ZoneId.of("Asia/Tokyo"));
                 slots = slots.stream().filter(time -> time.isAfter(now)).collect(Collectors.toList());
             }
             
@@ -160,7 +168,16 @@ public class PatientReservationController {
         DentalClinic clinic = getClinicOrThrow(token);
         TreatmentType treatment = treatmentTypeRepository.findById(treatmentId).orElseThrow();
         
-        if (date.isBefore(LocalDate.now())) {
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Tokyo"));
+        if (date.isBefore(today)) {
+            return List.of();
+        }
+        if (clinic.getReservationRestrictions() != null && clinic.getReservationRestrictions() && date.isEqual(today)) {
+            return List.of();
+        }
+        int maxMonths = clinic.getMaxReserveMonth() != null ? clinic.getMaxReserveMonth() : 3;
+        LocalDate maxAllowedDate = today.plusMonths(maxMonths);
+        if (date.isAfter(maxAllowedDate)) {
             return List.of();
         }
 
@@ -249,10 +266,30 @@ public class PatientReservationController {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "認証コードの有効期限（15分）が切れています。最初からやり直してください。"));
         }
 
-        // 不正日時チェック
-        if (form.getReservationDate().isBefore(LocalDate.now()) || 
-            (form.getReservationDate().isEqual(LocalDate.now()) && form.getReservationTime().isBefore(LocalTime.now()))) {
-            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "過去の日時は予約できません。"));
+        // 不正日時チェック・予約制限チェック
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Tokyo"));
+        int maxMonths = clinic.getMaxReserveMonth() != null ? clinic.getMaxReserveMonth() : 3;
+        LocalDate maxAllowedDate = today.plusMonths(maxMonths);
+
+        if (form.getReservationDate().isBefore(today)) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "過去の日は予約できません。"));
+        }
+        if (form.getReservationDate().isEqual(today) && form.getReservationTime().isBefore(LocalTime.now(java.time.ZoneId.of("Asia/Tokyo")))) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "過去の時間は予約できません。"));
+        }
+        if (form.getReservationDate().isAfter(maxAllowedDate)) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "予約可能期間（" + maxMonths + "ヶ月先まで）を超えています。"));
+        }
+        if (clinic.getReservationRestrictions() != null && clinic.getReservationRestrictions() && form.getReservationDate().isEqual(today)) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "当日のご予約は受け付けておりません。"));
+        }
+
+        // 複合制限（同一医院内で同じ電話番号の二重登録を防ぐ）
+        java.util.Optional<com.example.dental.entity.Patient> duplicatePatientOpt = patientRepository.findByDentalClinicAndTel(clinic, form.getTel());
+        if (duplicatePatientOpt.isPresent()) {
+            if (userDetails == null || !duplicatePatientOpt.get().getPatientId().equals(userDetails.getPatient().getPatientId())) {
+                return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "この電話番号は既に登録されています。既存のアカウントでログインしてからご予約ください。"));
+            }
         }
 
 
@@ -306,10 +343,28 @@ public class PatientReservationController {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", String.join("\n", errors)));
         }
 
-        // 不正日時チェック
-        if (form.getReservationDate().isBefore(java.time.LocalDate.now()) || 
-            (form.getReservationDate().isEqual(java.time.LocalDate.now()) && form.getReservationTime().isBefore(java.time.LocalTime.now()))) {
-            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "過去の日時は予約できません。"));
+        // 不正日時チェック・予約制限チェック
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Tokyo"));
+        int maxMonths = clinic.getMaxReserveMonth() != null ? clinic.getMaxReserveMonth() : 3;
+        LocalDate maxAllowedDate = today.plusMonths(maxMonths);
+
+        if (form.getReservationDate().isBefore(today)) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "過去の日は予約できません。"));
+        }
+        if (form.getReservationDate().isEqual(today) && form.getReservationTime().isBefore(LocalTime.now(java.time.ZoneId.of("Asia/Tokyo")))) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "過去の時間は予約できません。"));
+        }
+        if (form.getReservationDate().isAfter(maxAllowedDate)) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "予約可能期間（" + maxMonths + "ヶ月先まで）を超えています。"));
+        }
+        if (clinic.getReservationRestrictions() != null && clinic.getReservationRestrictions() && form.getReservationDate().isEqual(today)) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "当日のご予約は受け付けておりません。"));
+        }
+
+        // 複合制限（同一医院内で同じ電話番号の二重登録を防ぐ）
+        java.util.Optional<com.example.dental.entity.Patient> duplicatePatientOpt = patientRepository.findByDentalClinicAndTel(clinic, form.getTel());
+        if (duplicatePatientOpt.isPresent() && !duplicatePatientOpt.get().getPatientId().equals(userDetails.getPatient().getPatientId())) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "この電話番号は既に別のアカウントで登録されています。"));
         }
 
         TreatmentType treatment = treatmentTypeRepository.findById(form.getTreatmentId()).orElseThrow();

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>予約の変更・キャンセル | TapDent</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Noto Sans JP', sans-serif; }
+        .main-container { max-width: 600px; margin: 2rem auto; }
+        .action-card {
+            border: 2px solid transparent;
+            border-radius: 12px;
+            transition: all 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        .action-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .action-card-primary:hover {
+            border-color: #0d6efd;
+            background-color: #f0f7ff;
+        }
+        .action-card-danger:hover {
+            border-color: #dc3545;
+            background-color: #fff5f5;
+        }
+        .icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .icon-primary { background-color: #e7f1ff; color: #0d6efd; }
+        .icon-danger { background-color: #f8d7da; color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container main-container">
+        
+        <div class="mb-4">
+            <a th:href="@{/patient/{token}/dashboard(token=${token})}" class="text-decoration-none text-secondary">
+                <i class="bi bi-arrow-left me-1"></i>ダッシュボードへ戻る
+            </a>
+        </div>
+
+        <h3 class="mb-4 fw-bold">ご予約の変更・キャンセル</h3>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-3 border-bottom pb-2">対象のご予約</h5>
+                <div class="d-flex mb-2">
+                    <div class="text-muted" style="width: 100px;">医院名</div>
+                    <div class="fw-bold" th:text="${appointment.dentalClinic.name}">〇〇歯科</div>
+                </div>
+                <div class="d-flex mb-2">
+                    <div class="text-muted" style="width: 100px;">日時</div>
+                    <div class="fw-bold">
+                        <span th:text="${#temporals.format(appointment.startAt, 'yyyy年MM月dd日')}"></span>
+                        <span th:text="${#temporals.format(appointment.startAt, 'HH:mm')}"></span> 〜
+                    </div>
+                </div>
+                <div class="d-flex">
+                    <div class="text-muted" style="width: 100px;">メニュー</div>
+                    <div class="fw-bold text-primary" th:text="${appointment.treatmentType.treatmentName}">定期検診</div>
+                </div>
+            </div>
+        </div>
+
+        <h5 class="mb-3 text-muted">ご希望の操作を選択してください</h5>
+
+        <a th:href="@{|/patient/${token}/reservation/${appointment.appointmentId}/change|}" class="card action-card action-card-primary mb-3 shadow-sm d-block">
+            <div class="card-body p-4 d-flex align-items-center">
+                <div class="icon-wrapper icon-primary me-4">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h5 class="fw-bold mb-1">時間を変更する</h5>
+                    <p class="text-muted mb-0 small">別の日時へ変更します。※メニューの変更はできません。</p>
+                </div>
+                <i class="bi bi-chevron-right text-muted fs-4"></i>
+            </div>
+        </a>
+
+        <a th:href="@{|/patient/${token}/reservation/${appointment.appointmentId}/cancel|}" class="card action-card action-card-danger mb-4 shadow-sm d-block">
+            <div class="card-body p-4 d-flex align-items-center">
+                <div class="icon-wrapper icon-danger me-4">
+                    <i class="bi bi-x-circle"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h5 class="fw-bold mb-1 text-danger">予約をキャンセルする</h5>
+                    <p class="text-muted mb-0 small">この予約を完全に取り消します。</p>
+                </div>
+                <i class="bi bi-chevron-right text-muted fs-4"></i>
+            </div>
+        </a>
+
+    </div>
+</body>
+</html>

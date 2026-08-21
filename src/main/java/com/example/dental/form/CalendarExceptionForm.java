@@ -17,6 +17,7 @@ public class CalendarExceptionForm {
     private LocalTime endAt;
     private LocalTime breakStartAt;
     private LocalTime breakEndAt;
+    private Boolean isAllDay = true;
 
     public CalendarExceptionDto toDto() {
         CalendarExceptionDto dto = new CalendarExceptionDto();
@@ -28,6 +29,7 @@ public class CalendarExceptionForm {
         dto.setEndAt(this.endAt);
         dto.setBreakStartAt(this.breakStartAt);
         dto.setBreakEndAt(this.breakEndAt);
+        dto.setIsAllDay(this.isAllDay);
         return dto;
     }
 }

@@ -16,6 +16,7 @@ import jakarta.persistence.Table;
 
 import com.example.dental.enums.AppointMethod;
 import com.example.dental.enums.AppointmentStatus;
+import com.example.dental.enums.VisitType;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -83,4 +84,9 @@ public class Appointment {
 	@Enumerated(EnumType.ORDINAL)
 	@Column(nullable = false)
 	private AppointmentStatus status;
+
+	// 初診・再診フラグ
+	@Enumerated(EnumType.STRING)
+	@Column(name = "visit_type", nullable = false)
+	private VisitType visitType;
 }

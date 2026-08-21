@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>予約管理カレンダー | TapDent</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
+        .navbar-custom { background-color: #0d6efd; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .navbar-custom .navbar-brand, .navbar-custom .nav-link { color: #fff; font-weight: 500; }
+        @media (min-width: 992px) {
+            .sidebar { min-height: calc(100vh - 56px); border-right: 1px solid #dee2e6; background-color: #fff; }
+        }
+        .sidebar-link { color: #495057; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 0.25rem; transition: all 0.2s; display: flex; align-items: center; gap: 10px; text-decoration: none; }
+        .sidebar-link:hover, .sidebar-link.active { background-color: #e9ecef; color: #0d6efd; font-weight: 600; }
+
+        /* Calendar Styles */
+        .calendar-container { background: #fff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 1.5rem; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        
+        /* Month View */
+        .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #dee2e6; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; }
+        .month-grid-header { background: #f8f9fa; text-align: center; font-weight: 600; padding: 0.5rem; }
+        .month-cell { background: #fff; min-height: 100px; padding: 0.5rem; cursor: pointer; transition: background 0.2s; }
+        .month-cell:hover { background: #f1f3f5; }
+        .month-cell.out-of-month { background: #f8f9fa; color: #adb5bd; }
+        .month-date { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .month-stats { text-align: center; border-radius: 4px; padding: 0.25rem; font-size: 0.85rem; font-weight: 600; }
+        .status-green { background-color: #d1e7dd; color: #0f5132; }
+        .status-yellow { background-color: #fff3cd; color: #664d03; }
+        .status-red { background-color: #f8d7da; color: #842029; }
+        .status-gray { background-color: #e2e3e5; color: #41464b; }
+
+        /* Week View */
+        .week-grid { display: grid; grid-template-columns: 60px repeat(7, 1fr); gap: 1px; background: #dee2e6; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; }
+        .week-header { background: #f8f9fa; text-align: center; font-weight: 600; padding: 0.5rem; }
+        .time-col { background: #f8f9fa; font-size: 0.8rem; text-align: right; padding-right: 0.5rem; color: #6c757d; border-bottom: 1px solid #dee2e6; }
+        .week-cell { background: #fff; min-height: 40px; position: relative; border-bottom: 1px dotted #dee2e6; padding: 2px; }
+        .week-block { background: rgba(13, 110, 253, 0.1); border: 1px solid #0d6efd; color: #0d6efd; font-size: 0.75rem; border-radius: 4px; padding: 2px 4px; text-align: center; cursor: pointer; }
+
+        /* Day View */
+        .day-container { display: flex; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; position: relative; background: #dee2e6; gap: 1px; }
+        .day-time-col { width: 60px; background: #f8f9fa; flex-shrink: 0; }
+        .day-chair-col { flex-grow: 1; background: #fff; display: flex; flex-direction: column; position: relative; min-width: 150px; }
+        .day-header { background: #f8f9fa; text-align: center; font-weight: 600; padding: 0.5rem; border-bottom: 1px solid #dee2e6; }
+        .time-slot { height: 40px; border-bottom: 1px dotted #dee2e6; box-sizing: border-box; }
+        .time-label { height: 40px; font-size: 0.8rem; text-align: right; padding-right: 0.5rem; color: #6c757d; border-bottom: 1px solid #dee2e6; display: flex; align-items: center; justify-content: flex-end; box-sizing: border-box; }
+        .appointment-block { position: absolute; left: 2px; right: 2px; border-radius: 4px; padding: 4px; font-size: 0.75rem; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; z-index: 10; border-left: 4px solid transparent; }
+        .appt-new { background-color: #e0f2fe; border-left-color: #0284c7; color: #0369a1; }
+        .appt-revisit { background-color: #fce7f3; border-left-color: #db2777; color: #9d174d; }
+        .appt-title { font-weight: 600; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .appt-meta { font-size: 0.7rem; opacity: 0.8; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+
+        /* Tooltip */
+        .custom-tooltip { position: absolute; background: #333; color: #fff; padding: 0.5rem; border-radius: 4px; font-size: 0.8rem; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 0.2s; white-space: nowrap; }
+    </style>
+</head>
+<body class="d-flex flex-column vh-100 overflow-hidden">
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container-fluid">
+            <button class="btn btn-outline-light d-lg-none me-2 p-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+            <a class="navbar-brand" href="/clinic/dashboard"><i class="bi bi-hospital me-2"></i>TapDent</a>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                    <li class="nav-item me-3 text-white d-flex align-items-center">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span sec:authentication="principal.clinicName"></span><span class="ms-1">さん</span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/clinic/logout}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid flex-grow-1 overflow-hidden">
+        <div class="row h-100">
+            <nav th:replace="~{clinic/fragments/sidebar :: sidebar('appointments')}"></nav>
+
+            <main class="col-lg-10 h-100 overflow-y-auto py-4 px-lg-5 pb-5">
+                <div class="calendar-container">
+                    
+                    <div class="calendar-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="viewType" id="viewMonth" value="month" checked>
+                                <label class="btn btn-outline-primary" for="viewMonth">月</label>
+                                <input type="radio" class="btn-check" name="viewType" id="viewWeek" value="week">
+                                <label class="btn btn-outline-primary" for="viewWeek">週</label>
+                                <input type="radio" class="btn-check" name="viewType" id="viewDay" value="day">
+                                <label class="btn btn-outline-primary" for="viewDay">日</label>
+                            </div>
+                            <button class="btn btn-outline-secondary" id="btnToday">本日</button>
+                        </div>
+                        
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-light" id="btnPrev"><i class="bi bi-chevron-left"></i></button>
+                            <h4 class="mb-0 fw-bold" id="currentDateLabel" style="min-width: 200px; text-align: center;">2026年 8月</h4>
+                            <button class="btn btn-light" id="btnNext"><i class="bi bi-chevron-right"></i></button>
+                        </div>
+                        
+                        <div class="d-flex align-items-center gap-2">
+                            <select class="form-select d-none" id="chairFilter" style="width: auto;">
+                                <option value="all">すべてのチェア</option>
+                            </select>
+                            <button class="btn btn-outline-secondary" id="btnSearch" title="予約検索">
+                                <i class="bi bi-search"></i>
+                            </button>
+                            <button class="btn btn-primary" id="btnAddReservation">
+                                <i class="bi bi-plus-lg me-1"></i>予約追加
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="viewContainer">
+                        <!-- Views will be injected here by JS -->
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Appointment Detail Modal -->
+    <div class="modal fade" id="apptModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">予約詳細</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="apptModalBody"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // State
+        let currentView = 'month'; // 'month', 'week', 'day'
+        let currentDate = new Date();
+        let appointments = [];
+        let chairs = [];
+        let businessHours = [];
+        let events = [];
+        let maxSlotsPerDay = 0; // fallback if no business hours 
+        let defaultReservationTimeUnit = 30;
+        
+        // DOM Elements
+        const viewContainer = document.getElementById('viewContainer');
+        const dateLabel = document.getElementById('currentDateLabel');
+        const chairFilter = document.getElementById('chairFilter');
+        const apptModal = new bootstrap.Modal(document.getElementById('apptModal'));
+
+        // Initialize
+        async function init() {
+            await Promise.all([
+                fetchChairs(),
+                fetchBusinessHours()
+            ]);
+            setupEventListeners();
+            loadView();
+        }
+
+        async function fetchBusinessHours() {
+            try {
+                const res = await fetch('/clinic/api/reservations/business-hours');
+                businessHours = await res.json();
+            } catch (e) {
+                console.error("Failed to load business hours", e);
+            }
+        }
+
+        function toLocalISOString(date) {
+            const y = date.getFullYear();
+            const m = (date.getMonth() + 1).toString().padStart(2, '0');
+            const d = date.getDate().toString().padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        async function fetchEvents(start, end) {
+            try {
+                const startStr = toLocalISOString(start);
+                const endStr = toLocalISOString(end);
+                const res = await fetch(`/clinic/calendar/events?start=${startStr}&end=${endStr}`);
+                events = await res.json();
+            } catch (e) {
+                console.error("Failed to load events", e);
+            }
+        }
+
+        async function fetchChairs() {
+            try {
+                const res = await fetch('/clinic/api/reservations/chairs');
+                chairs = await res.json();
+                maxSlotsPerDay = chairs.length * 18; // Fallback
+                
+                // Populate filter
+                chairFilter.innerHTML = '<option value="all">すべてのチェア</option>';
+                chairs.forEach(c => {
+                    chairFilter.innerHTML += `<option value="${c.chairId}">${c.chairName}</option>`;
+                });
+            } catch (e) {
+                console.error("Failed to load chairs", e);
+            }
+        }
+
+        async function fetchAppointments(start, end) {
+            try {
+                const startStr = toLocalISOString(start);
+                const endStr = toLocalISOString(end);
+                const res = await fetch(`/clinic/api/reservations/appointments?start=${startStr}&end=${endStr}`);
+                appointments = await res.json();
+            } catch (e) {
+                console.error("Failed to load appointments", e);
+            }
+        }
+
+        function setupEventListeners() {
+            document.querySelectorAll('input[name="viewType"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    currentView = e.target.value;
+                    if (currentView === 'month') { chairFilter.classList.add('d-none'); }
+                    else { chairFilter.classList.remove('d-none'); }
+                    loadView();
+                });
+            });
+
+            document.getElementById('btnPrev').addEventListener('click', () => {
+                if (currentView === 'month') { currentDate.setMonth(currentDate.getMonth() - 1); }
+                else if (currentView === 'week') { currentDate.setDate(currentDate.getDate() - 7); }
+                else { currentDate.setDate(currentDate.getDate() - 1); }
+                loadView();
+            });
+
+            document.getElementById('btnNext').addEventListener('click', () => {
+                if (currentView === 'month') { currentDate.setMonth(currentDate.getMonth() + 1); }
+                else if (currentView === 'week') { currentDate.setDate(currentDate.getDate() + 7); }
+                else { currentDate.setDate(currentDate.getDate() + 1); }
+                loadView();
+            });
+
+            document.getElementById('btnToday').addEventListener('click', () => {
+                currentDate = new Date();
+                loadView();
+            });
+
+            chairFilter.addEventListener('change', () => {
+                renderCurrentView(); // Only re-render, don't re-fetch
+            });
+        }
+
+        async function loadView() {
+            let start, end;
+            
+            if (currentView === 'month') {
+                start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+                // Expand to include padding days for grid
+                const startDay = start.getDay(); // 0-6 (Sun-Sat)
+                start.setDate(start.getDate() - startDay);
+                end.setDate(end.getDate() + (6 - end.getDay()));
+                dateLabel.innerText = `${currentDate.getFullYear()}年 ${currentDate.getMonth() + 1}月`;
+            } else if (currentView === 'week') {
+                start = new Date(currentDate);
+                start.setDate(start.getDate() - start.getDay()); // Sunday
+                end = new Date(start);
+                end.setDate(end.getDate() + 6); // Saturday
+                dateLabel.innerText = `${start.getMonth() + 1}/${start.getDate()} - ${end.getMonth() + 1}/${end.getDate()}`;
+            } else {
+                start = new Date(currentDate);
+                end = new Date(currentDate);
+                dateLabel.innerText = `${currentDate.getFullYear()}年 ${currentDate.getMonth() + 1}月 ${currentDate.getDate()}日`;
+            }
+
+            await Promise.all([
+                fetchAppointments(start, end),
+                fetchEvents(start, end)
+            ]);
+            renderCurrentView();
+        }
+
+        function renderCurrentView() {
+            viewContainer.innerHTML = '';
+            if (currentView === 'month') renderMonthView();
+            else if (currentView === 'week') renderWeekView();
+            else renderDayView();
+        }
+
+        // --- Helpers ---
+        function parseMinsGlobal(t) {
+            if (!t) return 0;
+            if (Array.isArray(t)) return t[0] * 60 + (t.length > 1 ? t[1] : 0);
+            if (typeof t === 'string') {
+                const parts = t.split(':');
+                return parseInt(parts[0] || 0) * 60 + parseInt(parts[1] || 0);
+            }
+            return 0;
+        }
+
+        function getDaySchedule(dateStr) {
+            const dt = new Date(dateStr);
+            const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+            const dayOfWeek = dayNames[dt.getDay()];
+            
+            let isHoliday = false;
+            let openTime = '09:00:00';
+            let closeTime = '18:00:00';
+            let breakStart = null;
+            let breakEnd = null;
+
+            // 1. Base business hours
+            const bh = businessHours.find(b => b.dayOfWeek === dayOfWeek);
+            if (bh) {
+                if (bh.regularHoliday) isHoliday = true;
+                else {
+                    openTime = bh.openAt || openTime;
+                    closeTime = bh.closeAt || closeTime;
+                    breakStart = bh.breakStartAt;
+                    breakEnd = bh.breakEndAt;
+                }
+            }
+
+            // 2. Clinic-wide exceptions
+            const clinicEvents = events.filter(e => {
+                let dStr = e.targetDate;
+                if (Array.isArray(dStr)) {
+                    dStr = `${dStr[0]}-${dStr[1].toString().padStart(2,'0')}-${dStr[2].toString().padStart(2,'0')}`;
+                }
+                return dStr === dateStr && !e.dentistId;
+            });
+            for (let e of clinicEvents) {
+                if (e.type === 'HOLIDAY') {
+                    isHoliday = true;
+                } else if (e.type === 'SPECIAL_CONSULTATION') {
+                    isHoliday = false;
+                    openTime = e.startAt || openTime;
+                    closeTime = e.endAt || closeTime;
+                    breakStart = e.breakStartAt;
+                    breakEnd = e.breakEndAt;
+                }
+            }
+            
+            // Calculate max slots based on time
+            let slots = 0;
+            if (!isHoliday) {
+                const startMins = parseMinsGlobal(openTime);
+                const endMins = parseMinsGlobal(closeTime);
+                let totalMins = endMins - startMins;
+                
+                if (breakStart && breakEnd) {
+                    const bsMins = parseMinsGlobal(breakStart);
+                    const beMins = parseMinsGlobal(breakEnd);
+                    totalMins -= Math.max(0, beMins - bsMins);
+                }
+                slots = Math.floor(totalMins / defaultReservationTimeUnit) * chairs.length;
+            }
+
+            return { isHoliday, openTime, closeTime, breakStart, breakEnd, slots };
+        }
+
+        function isTimeClosed(timeStr, schedule) {
+            if (schedule.isHoliday) return true;
+            
+            const tMins = parseMinsGlobal(timeStr);
+            const oMins = parseMinsGlobal(schedule.openTime);
+            const cMins = parseMinsGlobal(schedule.closeTime);
+            
+            if (tMins < oMins || tMins >= cMins) return true;
+            
+            if (schedule.breakStart && schedule.breakEnd) {
+                const bsMins = parseMinsGlobal(schedule.breakStart);
+                const beMins = parseMinsGlobal(schedule.breakEnd);
+                if (tMins >= bsMins && tMins < beMins) return true;
+            }
+            return false;
+        }
+
+        // --- View Renderers ---
+        function renderMonthView() {
+            let html = '<div class="month-grid">';
+            const days = ['日', '月', '火', '水', '木', '金', '土'];
+            days.forEach(d => html += `<div class="month-grid-header">${d}</div>`);
+
+            const iterDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            iterDate.setDate(iterDate.getDate() - iterDate.getDay()); // Start from previous Sunday
+
+            // Store global function for onclick
+            window.jumpToDay = function(dateStr) {
+                currentDate = new Date(dateStr);
+                document.getElementById('viewDay').checked = true;
+                currentView = 'day';
+                chairFilter.classList.remove('d-none');
+                loadView();
+            };
+
+            for (let i = 0; i < 42; i++) { // 6 weeks
+                const dateStr = toLocalISOString(iterDate);
+                const isCurrentMonth = iterDate.getMonth() === currentDate.getMonth();
+                
+                // Count appointments for this day
+                const dayAppts = appointments.filter(a => {
+                    let aStart = a.startAt;
+                    if (Array.isArray(aStart)) aStart = `${aStart[0]}-${aStart[1].toString().padStart(2,'0')}-${aStart[2].toString().padStart(2,'0')}`;
+                    return aStart && aStart.startsWith(dateStr);
+                });
+                const count = dayAppts.length;
+                
+                const schedule = getDaySchedule(dateStr);
+                
+                let statusClass = 'status-green';
+                let topText = '診療';
+                let bottomText = `${count}件`;
+                
+                if (schedule.isHoliday) {
+                    statusClass = 'status-gray';
+                    topText = '休診';
+                } else if (schedule.slots === 0) {
+                    statusClass = 'status-gray';
+                    topText = '設定なし';
+                } else if (count >= schedule.slots * 0.9) {
+                    statusClass = 'status-red';
+                } else if (count >= schedule.slots * 0.6) {
+                    statusClass = 'status-yellow';
+                }
+
+                // 休診日に予約が入っている場合は赤色で警告表示
+                if (schedule.isHoliday && count > 0) {
+                    statusClass = 'status-red';
+                }
+
+                html += `
+                <div class="month-cell ${isCurrentMonth ? '' : 'out-of-month'}" onclick="window.jumpToDay('${dateStr}')">
+                    <div class="month-date">${iterDate.getDate()}</div>
+                    <div class="month-stats ${statusClass}">
+                        <div>${topText}</div>
+                        <div style="font-size: 0.75rem; margin-top: 2px; opacity: 0.9;">${bottomText}</div>
+                    </div>
+                </div>`;
+                
+                iterDate.setDate(iterDate.getDate() + 1);
+            }
+            html += '</div>';
+            viewContainer.innerHTML = html;
+        }
+
+        function renderWeekView() {
+            const filterChairId = chairFilter.value;
+            const filteredAppts = filterChairId === 'all' ? appointments : appointments.filter(a => a.chairId == filterChairId);
+            
+            let html = '<div class="week-grid">';
+            html += '<div class="week-header">時間</div>';
+            
+            const startOfWeek = new Date(currentDate);
+            startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+            
+            const schedules = [];
+            let viewStartHour = 24, viewEndHour = 0;
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(startOfWeek);
+                d.setDate(d.getDate() + i);
+                const dayNames = ['日','月','火','水','木','金','土'];
+                const dateStr = toLocalISOString(d);
+                const schedule = getDaySchedule(dateStr);
+                schedules.push({ dateStr, schedule });
+                if (!schedule.isHoliday) {
+                    const oHour = Math.floor(parseMinsGlobal(schedule.openTime) / 60);
+                    const cHour = Math.ceil(parseMinsGlobal(schedule.closeTime) / 60);
+                    if (oHour < viewStartHour) viewStartHour = oHour;
+                    if (cHour > viewEndHour) viewEndHour = cHour;
+                }
+                html += `<div class="week-header">${d.getDate()} (${dayNames[d.getDay()]})</div>`;
+            }
+            if (viewStartHour === 24) viewStartHour = 9;
+            if (viewEndHour === 0) viewEndHour = 18;
+
+            // Time slots: viewStartHour to viewEndHour
+            for (let h = viewStartHour; h < viewEndHour; h++) {
+                for (let m of ['00', '30']) {
+                    const timeStr = `${h.toString().padStart(2, '0')}:${m}`;
+                    html += `<div class="time-col d-flex align-items-center justify-content-end">${timeStr}</div>`;
+                    
+                    for (let i = 0; i < 7; i++) {
+                        const d = new Date(startOfWeek);
+                        d.setDate(d.getDate() + i);
+                        const dateStr = schedules[i].dateStr;
+                        const schedule = schedules[i].schedule;
+                        const closed = isTimeClosed(timeStr, schedule);
+                        
+                        // Find appts that overlap this 30min slot
+                        const slotStart = new Date(`${dateStr}T${timeStr}:00`);
+                        const slotEnd = new Date(slotStart.getTime() + 30 * 60000);
+                        
+                        const slotAppts = filteredAppts.filter(a => {
+                            let aStartStr = a.startAt;
+                            let aEndStr = a.endAt;
+                            if (Array.isArray(aStartStr)) {
+                                aStartStr = `${aStartStr[0]}-${aStartStr[1].toString().padStart(2,'0')}-${aStartStr[2].toString().padStart(2,'0')}T${(aStartStr[3]||0).toString().padStart(2,'0')}:${(aStartStr[4]||0).toString().padStart(2,'0')}`;
+                            }
+                            if (Array.isArray(aEndStr)) {
+                                aEndStr = `${aEndStr[0]}-${aEndStr[1].toString().padStart(2,'0')}-${aEndStr[2].toString().padStart(2,'0')}T${(aEndStr[3]||0).toString().padStart(2,'0')}:${(aEndStr[4]||0).toString().padStart(2,'0')}`;
+                            }
+                            const aStart = new Date(aStartStr);
+                            const aEnd = new Date(aEndStr);
+                            return aStart < slotEnd && aEnd > slotStart;
+                        });
+
+                        html += `<div class="week-cell" ${closed ? 'style="background-color: #f1f3f5;"' : ''}>`;
+                        if (slotAppts.length > 0) {
+                            const tooltipContent = slotAppts.map(a => `${a.patientName} (${a.treatmentName})`).join('&#10;');
+                            html += `<div class="week-block" title="${tooltipContent}">${slotAppts.length}件</div>`;
+                        }
+                        html += `</div>`;
+                    }
+                }
+            }
+            html += '</div>';
+            viewContainer.innerHTML = html;
+        }
+
+        function renderDayView() {
+            const filterChairId = chairFilter.value;
+            const displayChairs = filterChairId === 'all' ? chairs : chairs.filter(c => c.chairId == filterChairId);
+            
+            const dateStr = toLocalISOString(currentDate);
+            const schedule = getDaySchedule(dateStr);
+
+            let viewStartHour = 9, viewEndHour = 18;
+            if (!schedule.isHoliday) {
+                viewStartHour = Math.floor(parseMinsGlobal(schedule.openTime) / 60);
+                viewEndHour = Math.ceil(parseMinsGlobal(schedule.closeTime) / 60);
+            } else {
+                const activeHours = businessHours.filter(b => !b.regularHoliday && b.openAt && b.closeAt);
+                if (activeHours.length > 0) {
+                    const minOpenMins = Math.min(...activeHours.map(b => parseMinsGlobal(b.openAt)));
+                    const maxCloseMins = Math.max(...activeHours.map(b => parseMinsGlobal(b.closeAt)));
+                    viewStartHour = Math.floor(minOpenMins / 60);
+                    viewEndHour = Math.ceil(maxCloseMins / 60);
+                }
+            }
+            const startHour = viewStartHour;
+            const totalHours = viewEndHour - viewStartHour;
+            const pixelPerHour = 80; // 40px per 30min
+            
+            let html = '<div class="day-container">';
+            
+            // Time column
+            html += '<div class="day-time-col"><div class="day-header">時間</div>';
+            for (let h = viewStartHour; h < viewEndHour; h++) {
+                for (let m of ['00', '30']) {
+                    html += `<div class="time-label">${h.toString().padStart(2, '0')}:${m}</div>`;
+                }
+            }
+            html += '</div>';
+
+            window.showApptModal = function(encodedJson) {
+                const a = JSON.parse(decodeURIComponent(encodedJson));
+                
+                let methodLabel = a.appointMethod;
+                if (a.appointMethod === 'ONLINE') methodLabel = 'オンライン予約';
+                else if (a.appointMethod === 'PHONE') methodLabel = '電話';
+                else if (a.appointMethod === 'RECEPTION') methodLabel = '窓口';
+
+                // 日時文字列の安全な整形
+                const formatDt = (dt) => {
+                    if (Array.isArray(dt)) {
+                        const [y, m, d, hh = 0, mm = 0] = dt;
+                        return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')} ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+                    }
+                    return String(dt).replace('T', ' ');
+                };
+
+                const startText = formatDt(a.startAt);
+                const endText = formatDt(a.endAt).split(' ')[1] || '';
+
+                let html = `
+                    <table class="table table-bordered mb-0">
+                        <tr><th>区分</th><td>${a.visitType === 'FIRST_VISIT' ? '初診' : '再診'}</td></tr>
+                        <tr><th>診察券番号</th><td>${a.patientCode || '未発行'}</td></tr>
+                        <tr><th>フリガナ</th><td>${a.patientNameKana || ''}</td></tr>
+                        <tr><th>患者名</th><td>${a.patientName || ''}</td></tr>
+                        <tr><th>予約方法</th><td>${methodLabel}</td></tr>
+                        <tr><th>メニュー</th><td>${a.treatmentName || ''}</td></tr>
+                        <tr><th>担当医</th><td>${a.dentistName || ''}</td></tr>
+                        <tr><th>チェア</th><td>${a.chairName || ''}</td></tr>
+                        <tr><th>日時</th><td>${startText} ～ ${endText}</td></tr>
+                    </table>
+                    <div class="mt-3 text-end">
+                        <button class="btn btn-primary btn-sm">患者詳細へ</button>
+                    </div>
+                `;
+                document.getElementById('apptModalBody').innerHTML = html;
+                apptModal.show();
+            };
+
+            // Chair columns
+            displayChairs.forEach(chair => {
+                html += `<div class="day-chair-col">
+                            <div class="day-header">${chair.chairName}</div>
+                            <div class="position-relative flex-grow-1" style="height: ${totalHours * pixelPerHour}px;">`;
+                
+                // Draw grid lines and closed areas
+                for (let i = 0; i < totalHours * 2; i++) {
+                    const h = Math.floor(i / 2) + viewStartHour;
+                    const m = (i % 2 === 0) ? '00' : '30';
+                    const timeStr = `${h.toString().padStart(2, '0')}:${m}`;
+                    const closed = isTimeClosed(timeStr, schedule);
+                    const bg = closed ? 'background-color: #f1f3f5;' : '';
+                    
+                    html += `<div class="time-slot" style="top: ${i*40}px; position:absolute; width:100%; ${bg}"></div>`;
+                }
+
+                // Draw Appointments
+                const chairAppts = appointments.filter(a => {
+                    let aStart = a.startAt;
+                    if (Array.isArray(aStart)) aStart = `${aStart[0]}-${aStart[1].toString().padStart(2,'0')}-${aStart[2].toString().padStart(2,'0')}`;
+                    return a.chairId === chair.chairId && aStart && aStart.startsWith(dateStr);
+                });
+                
+                chairAppts.forEach(a => {
+                    let aStartStr = a.startAt;
+                    let aEndStr = a.endAt;
+                    if (Array.isArray(aStartStr)) {
+                        aStartStr = `${aStartStr[0]}-${aStartStr[1].toString().padStart(2,'0')}-${aStartStr[2].toString().padStart(2,'0')}T${(aStartStr[3]||0).toString().padStart(2,'0')}:${(aStartStr[4]||0).toString().padStart(2,'0')}`;
+                    }
+                    if (Array.isArray(aEndStr)) {
+                        aEndStr = `${aEndStr[0]}-${aEndStr[1].toString().padStart(2,'0')}-${aEndStr[2].toString().padStart(2,'0')}T${(aEndStr[3]||0).toString().padStart(2,'0')}:${(aEndStr[4]||0).toString().padStart(2,'0')}`;
+                    }
+                    const startDt = new Date(aStartStr);
+                    const endDt = new Date(aEndStr);
+                    
+                    const startMinutes = (startDt.getHours() - startHour) * 60 + startDt.getMinutes();
+                    const durationMinutes = (endDt.getTime() - startDt.getTime()) / 60000;
+                    
+                    const top = (startMinutes / 60) * pixelPerHour;
+                    const height = (durationMinutes / 60) * pixelPerHour;
+                    
+                    const colorClass = a.visitType === 'FIRST_VISIT' ? 'appt-new' : 'appt-revisit';
+                    const encodedAppt = encodeURIComponent(JSON.stringify(a));
+                    
+                    const visitTypeStr = a.visitType === 'FIRST_VISIT' ? '初診' : '再診';
+                    const patientCodeStr = a.patientCode || '未発行';
+                    
+                    html += `
+                    <div class="appointment-block ${colorClass}" style="top: ${top}px; height: ${height}px;" onclick="window.showApptModal('${encodedAppt}')">
+                        <div class="appt-title">${visitTypeStr} ${a.treatmentName}</div>
+                        <div class="appt-meta">${patientCodeStr} ${a.patientNameKana}</div>
+                    </div>`;
+                });
+
+                html += `</div></div>`;
+            });
+            
+            html += '</div>';
+            viewContainer.innerHTML = html;
+        }
+
+        // Run
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

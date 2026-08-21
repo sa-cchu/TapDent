@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!-- 
+    使い回し可能なサイドバー（Offcanvas）フラグメント
+    ※呼び出し元のHTMLでBootstrap 5のCSS/JSが読み込まれている必要があります。
+-->
+<div th:fragment="sidebar(patientName, patientEmail, token)" class="offcanvas offcanvas-start" tabindex="-1" id="patientSidebar" aria-labelledby="patientSidebarLabel">
+    <div class="offcanvas-header bg-light border-bottom">
+        <h5 class="offcanvas-title fw-bold" id="patientSidebarLabel">メニュー</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-0 d-flex flex-column">
+        <!-- ユーザー情報エリア -->
+        <div th:if="${patientName != null}" class="p-4 border-bottom text-center bg-white">
+            <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                <i class="bi bi-person-fill"></i>
+            </div>
+            <h6 class="fw-bold mb-1" th:text="${patientName} + ' 様'">山田 太郎 様</h6>
+            <p class="text-muted small mb-0" th:text="${patientEmail}">email@example.com</p>
+        </div>
+
+        <div class="list-group list-group-flush mt-2">
+            <a th:href="@{|/patient/${token}/account|}" class="list-group-item list-group-item-action py-3 border-0">
+                <i class="bi bi-person-lines-fill me-2 text-primary"></i> アカウント情報
+            </a>
+            <a th:href="@{|/patient/${token}/password|}" class="list-group-item list-group-item-action py-3 border-0">
+                <i class="bi bi-key me-2 text-primary"></i> パスワード変更
+            </a>
+        </div>
+        
+        <!-- ログアウトボタン -->
+        <div class="p-4 mt-auto">
+            <a th:href="@{|/patient/${token}/logout|}" class="btn btn-outline-danger w-100">
+                <i class="bi bi-box-arrow-right me-1"></i> ログアウト
+            </a>
+        </div>
+    </div>
+</div>
+</html>

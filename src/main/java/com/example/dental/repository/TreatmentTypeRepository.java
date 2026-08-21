@@ -11,4 +11,6 @@ import com.example.dental.entity.DentalClinic;
 public interface TreatmentTypeRepository extends JpaRepository<TreatmentType, Long> {
     List<TreatmentType> findByDentalClinic(DentalClinic clinic);
     List<TreatmentType> findByDentalClinicAndTargetPatientType(DentalClinic clinic, com.example.dental.enums.TargetPatientType targetPatientType);
+    List<TreatmentType> findByDentalClinicAndIsDeletedFalse(DentalClinic clinic);
+    List<TreatmentType> findByDentalClinicAndTargetPatientTypeAndIsDeletedFalse(DentalClinic clinic, com.example.dental.enums.TargetPatientType targetPatientType);
 }

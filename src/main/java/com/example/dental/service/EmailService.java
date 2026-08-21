@@ -81,6 +81,35 @@ public class EmailService {
             System.out.println("Passcode: " + passcode);
             System.out.println("=============================================================");
         }
+    }
+
+    /**
+     * アカウント情報更新時の認証コードを記載したメールを送信します
+     */
+    @Async
+    public void sendAccountVerificationCode(String toEmail, String passcode) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(toEmail);
+        message.setSubject("【TapDent】メールアドレス変更の認証コード");
+        message.setText("メールアドレスの変更を確定するための認証コードは以下の通りです。\n\n" +
+                "【 " + passcode + " 】\n\n" +
+                "※この認証コードの有効期限は送信後15分間です。\n" +
+                "アカウント編集画面に戻り、上記コードを入力して変更を完了してください。\n" +
+                "ご自身で変更手続きを行っていない場合は、このメールを破棄してください。");
+
+        try {
+            mailSender.send(message);
+            logger.info("Account verification email successfully sent to {}", toEmail);
+        } catch (Exception e) {
+            logger.error("Failed to send email. Falling back to console output. Error: {}", e.getMessage());
+            System.out.println("====== [MAIL LOG (Local Fallback: Account Verify)] ======");
+            System.out.println("To: " + toEmail);
+            System.out.println("Subject: " + message.getSubject());
+            System.out.println("Passcode: " + passcode);
+            System.out.println("=========================================================");
+        }
+    }
+
     /**
      * 予約完了メールを送信します
      */
@@ -96,7 +125,8 @@ public class EmailService {
         String text = "この度はご予約ありがとうございます。\n以下の内容で予約が確定いたしました。\n\n" +
                 "■ご予約内容\n" +
                 "・医院名: " + appointment.getDentalClinic().getName() + "\n" +
-                "・日時: " + appointment.getStartAt().format(dateFormatter) + " " + appointment.getStartAt().format(timeFormatter) + " ～\n" +
+                "・日時: " + appointment.getStartAt().format(dateFormatter) + " "
+                + appointment.getStartAt().format(timeFormatter) + " ～\n" +
                 "・メニュー: " + appointment.getTreatmentType().getTreatmentName() + "\n\n" +
                 "ご来院の際は、保険証と本人確認書類をお持ちください。\n" +
                 "予約の変更やキャンセルは、お早めにダッシュボードからお願いいたします。";
@@ -109,6 +139,77 @@ public class EmailService {
         } catch (Exception e) {
             logger.error("Failed to send complete email. Error: {}", e.getMessage());
             System.out.println("====== [MAIL LOG (Reservation Complete)] ======");
+            System.out.println("To: " + toEmail);
+            System.out.println("Subject: " + message.getSubject());
+            System.out.println("Text: \n" + text);
+            System.out.println("===============================================");
+        }
+    }
+
+    /**
+     * 予約キャンセル完了メールを送信します
+     */
+    @Async
+    public void sendReservationCancelEmail(String toEmail, Appointment appointment) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(toEmail);
+        message.setSubject("【TapDent】ご予約キャンセルのお知らせ");
+
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日");
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+        String text = "以下のご予約のキャンセルを承りました。\n\n" +
+                "■キャンセルしたご予約\n" +
+                "・医院名: " + appointment.getDentalClinic().getName() + "\n" +
+                "・日時: " + appointment.getStartAt().format(dateFormatter) + " "
+                + appointment.getStartAt().format(timeFormatter) + " ～\n" +
+                "・メニュー: " + appointment.getTreatmentType().getTreatmentName() + "\n\n" +
+                "またのご来院をお待ちしております。";
+
+        message.setText(text);
+
+        try {
+            mailSender.send(message);
+            logger.info("Reservation cancel email successfully sent to {}", toEmail);
+        } catch (Exception e) {
+            logger.error("Failed to send cancel email. Error: {}", e.getMessage());
+            System.out.println("====== [MAIL LOG (Reservation Cancel)] ======");
+            System.out.println("To: " + toEmail);
+            System.out.println("Subject: " + message.getSubject());
+            System.out.println("Text: \n" + text);
+            System.out.println("===============================================");
+        }
+    }
+
+    /**
+     * 予約時間変更完了メールを送信します
+     */
+    @Async
+    public void sendReservationChangeEmail(String toEmail, Appointment appointment) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(toEmail);
+        message.setSubject("【TapDent】ご予約時間変更のお知らせ");
+
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日");
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+        String text = "ご予約日時の変更を承りました。\n以下の内容で新しい予約が確定いたしました。\n\n" +
+                "■変更後のご予約内容\n" +
+                "・医院名: " + appointment.getDentalClinic().getName() + "\n" +
+                "・日時: " + appointment.getStartAt().format(dateFormatter) + " "
+                + appointment.getStartAt().format(timeFormatter) + " ～\n" +
+                "・メニュー: " + appointment.getTreatmentType().getTreatmentName() + "\n\n" +
+                "ご来院の際は、保険証と本人確認書類をお持ちください。\n" +
+                "ご不明な点がありましたら、医院までご連絡ください。";
+
+        message.setText(text);
+
+        try {
+            mailSender.send(message);
+            logger.info("Reservation change email successfully sent to {}", toEmail);
+        } catch (Exception e) {
+            logger.error("Failed to send change email. Error: {}", e.getMessage());
+            System.out.println("====== [MAIL LOG (Reservation Change)] ======");
             System.out.println("To: " + toEmail);
             System.out.println("Subject: " + message.getSubject());
             System.out.println("Text: \n" + text);

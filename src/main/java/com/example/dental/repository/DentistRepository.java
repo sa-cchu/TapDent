@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface DentistRepository extends JpaRepository<Dentist, Long> {
     List<Dentist> findByDentalClinic(DentalClinic clinic);
+    List<Dentist> findByDentalClinicAndIsDeletedFalse(DentalClinic clinic);
 }

@@ -43,6 +43,11 @@ public class PatientLoginController {
     public String showLoginPage(@PathVariable String token, 
                                 @RequestParam(value = "error", required = false) String error,
                                 Model model) {
+        org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !(auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)) {
+            return "redirect:/patient/" + token + "/dashboard";
+        }
+
         DentalClinic clinic = dentalClinicRepository.findByPublicUrlToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("無効な医院トークンです"));
         
@@ -50,7 +55,11 @@ public class PatientLoginController {
         model.addAttribute("token", token);
         
         if (error != null) {
-            model.addAttribute("errorMessage", "メールアドレスまたはパスワードが間違っています。");
+            if ("locked".equals(error)) {
+                model.addAttribute("errorMessage", "アカウントが一時的にロックされています。30分後に再度お試しください。");
+            } else {
+                model.addAttribute("errorMessage", "メールアドレスまたはパスワードが間違っています。");
+            }
         }
         
         return "patient/login";
@@ -58,25 +67,49 @@ public class PatientLoginController {
 
     @PostMapping("/login")
     public String processLogin(@PathVariable String token,
-                               @RequestParam String email,
+                               @RequestParam String loginId,
                                @RequestParam String password,
                                HttpServletRequest request) {
 
         DentalClinic clinic = dentalClinicRepository.findByPublicUrlToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("無効な医院トークンです"));
 
-        Optional<Patient> patientOpt = patientRepository.findByDentalClinicAndEmail(clinic, email);
+        Optional<Patient> patientOpt = patientRepository.findByClinicAndLoginId(clinic, loginId);
         
-        // 存在チェックとパスワード照合
-        if (patientOpt.isEmpty() || !passwordEncoder.matches(password, patientOpt.get().getPassword())) {
+        if (patientOpt.isEmpty()) {
             return "redirect:/patient/" + token + "/login?error=true";
         }
         
         Patient patient = patientOpt.get();
-        // ロックや削除のチェック
-        if (patient.getIsDeleted() || (patient.getLockedUntill() != null && patient.getLockedUntill().isAfter(LocalDateTime.now()))) {
+
+        // 削除チェック
+        if (patient.getIsDeleted()) {
             return "redirect:/patient/" + token + "/login?error=true";
         }
+        
+        // ロックチェック（現在時刻がロック解除時刻より前ならロック中）
+        if (patient.getLockedUntill() != null && patient.getLockedUntill().isAfter(LocalDateTime.now())) {
+            return "redirect:/patient/" + token + "/login?error=locked";
+        }
+
+        // パスワード照合
+        if (!passwordEncoder.matches(password, patient.getPassword())) {
+            // 失敗回数をカウントアップ
+            patient.setLoginAttempts(patient.getLoginAttempts() + 1);
+            if (patient.getLoginAttempts() >= 5) {
+                // 5回失敗で30分間ロック（実務的な最適解）
+                patient.setLockedUntill(LocalDateTime.now().plusMinutes(30));
+                patientRepository.save(patient);
+                return "redirect:/patient/" + token + "/login?error=locked";
+            }
+            patientRepository.save(patient);
+            return "redirect:/patient/" + token + "/login?error=true";
+        }
+        
+        // ログイン成功時：失敗回数とロック情報をリセット
+        patient.setLoginAttempts(0);
+        patient.setLockedUntill(null);
+        patientRepository.save(patient);
 
         // 手動でSpring Securityのコンテキストに認証情報をセット
         PatientUserDetails userDetails = new PatientUserDetails(patient);
@@ -93,5 +126,18 @@ public class PatientLoginController {
 
         // ダッシュボードへリダイレクト
         return "redirect:/patient/" + token + "/dashboard";
+    }
+
+    @GetMapping("/logout")
+    public String logout(@PathVariable String token, HttpServletRequest request) {
+        // セッションからSpring Securityのコンテキストをクリアし、セッションを破棄
+        SecurityContextHolder.clearContext();
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        
+        // ログアウト完了後、ログイン画面へリダイレクト
+        return "redirect:/patient/" + token + "/login?logout=true";
     }
 }

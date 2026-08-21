@@ -65,4 +65,8 @@ public class CalendarException {
     // 休憩終了時刻
     @Column(name = "break_end_at")
     private LocalTime breakEndAt;
+
+    // 終日フラグ
+    @Column(name = "is_all_day", nullable = false)
+    private Boolean isAllDay = false;
 }

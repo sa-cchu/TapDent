@@ -21,4 +21,5 @@ public class CalendarExceptionDto {
     private LocalTime endAt;   // 必須 (dentistId != null)
     private LocalTime breakStartAt;
     private LocalTime breakEndAt;
+    private Boolean isAllDay = true;
 }

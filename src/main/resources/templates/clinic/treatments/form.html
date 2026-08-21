@@ -59,7 +59,7 @@
 
                             <div class="mb-4">
                                 <label for="requiredMinutes" class="form-label fw-bold">所要時間（分） <span class="badge bg-danger ms-1">必須</span></label>
-                                <input type="number" class="form-control" id="requiredMinutes" th:field="*{requiredMinutes}" min="5" step="5" placeholder="例: 30">
+                                <input type="number" class="form-control" id="requiredMinutes" th:field="*{requiredMinutes}" min="30" step="30" placeholder="例: 30">
                                 <div class="text-danger mt-1 small" th:if="${#fields.hasErrors('requiredMinutes')}" th:errors="*{requiredMinutes}"></div>
                             </div>
 

@@ -140,16 +140,21 @@
             <div th:if="${errorMessage}" class="alert alert-danger" role="alert" th:text="${errorMessage}">
                 エラーメッセージ
             </div>
+            
+            <div th:if="${param.logout}" class="alert alert-success" role="alert">
+                ログアウトしました。
+            </div>
 
             <!-- 将来的にSpring Securityの /patient/login に向ける想定 -->
             <form th:action="@{/patient/{token}/login(token=${token})}" method="post">
                 <div class="mb-3">
-                    <label for="email" class="form-label text-secondary small fw-bold">メールアドレス</label>
-                    <input type="email" class="form-control" id="email" name="email" placeholder="example@example.com" required>
+                    <label for="loginId" class="form-label text-secondary small fw-bold">ログインID（メールアドレス または 診察券番号）</label>
+                    <input type="text" class="form-control" id="loginId" name="loginId" placeholder="メールアドレス または 診察券番号" required>
                 </div>
                 <div class="mb-3">
                     <label for="password" class="form-label text-secondary small fw-bold">パスワード</label>
                     <input type="password" class="form-control" id="password" name="password" placeholder="パスワードを入力" required>
+                    <div class="form-text small text-nowrap text-danger">※初期パスワードは生年月日8桁（例: 19900101）です。</div>
                 </div>
                 
                 <div class="d-flex justify-content-between mb-3">

@@ -29,4 +29,12 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
     // 歯科医院とメールアドレスで患者を検索
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"role"})
     Optional<Patient> findByDentalClinicAndEmail(com.example.dental.entity.DentalClinic clinic, String email);
+
+    // 歯科医院と ログインID（メールアドレス または 診察券番号）で患者を検索
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"role"})
+    @org.springframework.data.jpa.repository.Query("SELECT p FROM Patient p WHERE p.dentalClinic = :clinic AND (p.email = :loginId OR p.patientCode = :loginId)")
+    Optional<Patient> findByClinicAndLoginId(@org.springframework.data.repository.query.Param("clinic") com.example.dental.entity.DentalClinic clinic, @org.springframework.data.repository.query.Param("loginId") String loginId);
+
+    // 歯科医院と電話番号で患者を検索（複合重複チェック用）
+    Optional<Patient> findByDentalClinicAndTel(com.example.dental.entity.DentalClinic clinic, String tel);
 }

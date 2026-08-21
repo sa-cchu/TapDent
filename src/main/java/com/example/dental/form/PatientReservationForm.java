@@ -59,6 +59,9 @@ public class PatientReservationForm implements Serializable {
     @Email(message = "正しいメールアドレス形式で入力してください", groups = Step3.class)
     private String email;
 
+    // 既存患者用：診察券番号（任意）
+    private String patientCode;
+
     // パスワードは生年月日から自動生成するためフロントエンドからの入力は不要
     private String password;
 

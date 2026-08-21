@@ -19,7 +19,6 @@ import lombok.Setter;
 @Entity
 @Table(name = "dentist")
 @SQLDelete(sql = "UPDATE dentist SET is_deleted = true WHERE dentist_id=?")
-@SQLRestriction("is_deleted = false")
 @Getter
 @Setter
 public class Dentist {

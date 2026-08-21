@@ -22,7 +22,6 @@ import lombok.Setter;
 @Entity
 @Table(name = "treatment_type")
 @SQLDelete(sql = "UPDATE treatment_type SET is_deleted = true WHERE treatment_id = ?")
-@SQLRestriction("is_deleted = false")
 @Getter
 @Setter
 public class TreatmentType {

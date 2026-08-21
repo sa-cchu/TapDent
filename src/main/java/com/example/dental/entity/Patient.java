@@ -79,7 +79,7 @@ public class Patient {
     private Integer loginAttempts = 0;
 
     // アカウントロック解除日時
-    @Column(name = "locked_untill", nullable = false)
+    @Column(name = "locked_untill")
     private LocalDateTime lockedUntill;
 
     @Column(name = "is_deleted", nullable = false)

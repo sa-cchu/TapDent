@@ -10,4 +10,5 @@ import com.example.dental.entity.DentalClinic;
 @Repository
 public interface DentalChairRepository extends JpaRepository<DentalChair, Long> {
     List<DentalChair> findByDentalClinic(DentalClinic clinic);
+    List<DentalChair> findByDentalClinicAndIsDeletedFalse(DentalClinic clinic);
 }

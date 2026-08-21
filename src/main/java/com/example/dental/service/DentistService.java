@@ -39,7 +39,7 @@ public class DentistService {
     public List<DentistDto> getDentistsByLoginId(String loginId) {
         DentalClinic clinic = dentalClinicRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid loginId"));
-        return dentistRepository.findByDentalClinic(clinic).stream()
+        return dentistRepository.findByDentalClinicAndIsDeletedFalse(clinic).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }

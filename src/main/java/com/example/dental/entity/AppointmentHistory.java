@@ -16,6 +16,7 @@ import jakarta.persistence.Table;
 
 import com.example.dental.enums.AppointMethod;
 import com.example.dental.enums.AppointmentStatus;
+import com.example.dental.enums.VisitType;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -74,6 +75,10 @@ public class AppointmentHistory {
     @Enumerated(EnumType.ORDINAL)
     @Column(nullable = false)
     private AppointmentStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "visit_type", nullable = false)
+    private VisitType visitType;
 
     // アーカイブ日時（いつ履歴に移動したか）
     @Column(name = "archive_at", nullable = false)

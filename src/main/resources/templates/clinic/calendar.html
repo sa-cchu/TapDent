@@ -56,36 +56,41 @@
             font-weight: 600;
         }
 
-        #calendar {
-            background: white;
-            padding: 1rem;
-            border-radius: 8px;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            max-width: 1000px;
-            margin: 0 auto;
-        }
+        /* Calendar Styles */
+        .calendar-container { background: #fff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        
+        /* Month View */
+        .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #dee2e6; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; }
+        .month-grid-header { background: #f8f9fa; text-align: center; font-weight: 600; padding: 0.5rem; }
+        .month-cell { background: #fff; min-height: 100px; padding: 0.5rem; cursor: pointer; transition: background 0.2s; position: relative; }
+        .month-cell:hover { background: #f1f3f5; }
+        .month-cell.out-of-month { background: #f8f9fa; color: #adb5bd; }
+        .month-date { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; }
+        
+        /* Event Blocks */
+        .event-block { border-radius: 4px; padding: 2px 4px; font-size: 0.75rem; margin-bottom: 2px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-weight: 600; }
+        .event-holiday-all { background-color: #f8d7da; color: #842029; border-left: 3px solid #dc3545; }
+        .event-holiday-dentist { background-color: #fff3cd; color: #664d03; border-left: 3px solid #ffc107; }
+        .event-special { background-color: #d1e7dd; color: #0f5132; border-left: 3px solid #198754; }
 
-        /* 曜日と休日の色設定 */
-        .fc-day-sun .fc-col-header-cell-cushion, 
-        .fc-day-sun .fc-daygrid-day-number,
-        .fc-holiday .fc-col-header-cell-cushion, 
-        .fc-holiday .fc-daygrid-day-number {
-            color: #dc3545 !important; /* 赤 */
-            text-decoration: none;
-        }
-        .fc-day-sat .fc-col-header-cell-cushion, 
-        .fc-day-sat .fc-daygrid-day-number {
-            color: #0d6efd !important; /* 青 */
-            text-decoration: none;
-        }
-        .fc-day-mon .fc-col-header-cell-cushion, .fc-day-mon .fc-daygrid-day-number,
-        .fc-day-tue .fc-col-header-cell-cushion, .fc-day-tue .fc-daygrid-day-number,
-        .fc-day-wed .fc-col-header-cell-cushion, .fc-day-wed .fc-daygrid-day-number,
-        .fc-day-thu .fc-col-header-cell-cushion, .fc-day-thu .fc-daygrid-day-number,
-        .fc-day-fri .fc-col-header-cell-cushion, .fc-day-fri .fc-daygrid-day-number {
-            color: #333 !important; /* 平日はダークグレー */
-            text-decoration: none;
-        }
+        /* Week View */
+        .week-grid { display: grid; grid-template-columns: 60px repeat(7, 1fr); gap: 1px; background: #dee2e6; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; }
+        .week-header { background: #f8f9fa; text-align: center; font-weight: 600; padding: 0.5rem; }
+        .time-col { background: #f8f9fa; font-size: 0.8rem; text-align: right; padding-right: 0.5rem; color: #6c757d; border-bottom: 1px solid #dee2e6; }
+        .week-cell { background: #fff; min-height: 40px; position: relative; border-bottom: 1px dotted #dee2e6; padding: 2px; cursor: pointer; }
+        .week-cell:hover { background: #f1f3f5; }
+        .week-block { font-size: 0.75rem; border-radius: 4px; padding: 2px 4px; text-align: center; cursor: pointer; margin-bottom: 2px; }
+
+        /* Day View */
+        .day-container { display: flex; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; position: relative; background: #dee2e6; gap: 1px; }
+        .day-time-col { width: 60px; background: #f8f9fa; flex-shrink: 0; }
+        .day-content-col { flex-grow: 1; background: #fff; display: flex; flex-direction: column; position: relative; }
+        .day-header { background: #f8f9fa; text-align: center; font-weight: 600; padding: 0.5rem; border-bottom: 1px solid #dee2e6; }
+        .time-slot { height: 40px; border-bottom: 1px dotted #dee2e6; box-sizing: border-box; cursor: pointer; }
+        .time-slot:hover { background: #f1f3f5; }
+        .time-label { height: 40px; font-size: 0.8rem; text-align: right; padding-right: 0.5rem; color: #6c757d; border-bottom: 1px solid #dee2e6; display: flex; align-items: center; justify-content: flex-end; box-sizing: border-box; }
+        .day-event-block { position: absolute; left: 10px; right: 10px; border-radius: 4px; padding: 4px 8px; font-size: 0.8rem; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; z-index: 10; border-left: 4px solid transparent; }
     </style>
 </head>
 <body class="d-flex flex-column vh-100 overflow-hidden">
@@ -125,11 +130,33 @@
 
             <!-- Main Content Area -->
             <main class="col-lg-10 h-100 overflow-y-auto py-4 px-lg-5 pb-5">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h1 class="h3 mb-0 text-gray-800">診療カレンダー</h1>
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="viewType" id="viewMonth" value="month" checked>
+                                <label class="btn btn-outline-primary" for="viewMonth">月</label>
+                                <input type="radio" class="btn-check" name="viewType" id="viewWeek" value="week">
+                                <label class="btn btn-outline-primary" for="viewWeek">週</label>
+                                <input type="radio" class="btn-check" name="viewType" id="viewDay" value="day">
+                                <label class="btn btn-outline-primary" for="viewDay">日</label>
+                            </div>
+                            <button class="btn btn-outline-secondary" id="btnToday">本日</button>
+                        </div>
+                        
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-light" id="btnPrev"><i class="bi bi-chevron-left"></i></button>
+                            <h4 class="mb-0 fw-bold" id="currentDateLabel" style="min-width: 200px; text-align: center;">2026年 8月</h4>
+                            <button class="btn btn-light" id="btnNext"><i class="bi bi-chevron-right"></i></button>
+                        </div>
+                        
+                        <div></div> <!-- Empty div for layout balance -->
+                    </div>
+
+                    <div id="viewContainer">
+                        <!-- Views will be injected here by JS -->
+                    </div>
                 </div>
-                
-                <div id="calendar"></div>
             </main>
         </div>
     </div>
@@ -229,127 +256,330 @@
     <script th:inline="javascript">
       /*<![CDATA[*/
       document.addEventListener('DOMContentLoaded', function() {
-          const calendarEl = document.getElementById('calendar');
           const csrfHeader = /*[[${_csrf.headerName}]]*/ 'X-CSRF-TOKEN';
           const csrfToken = /*[[${_csrf.token}]]*/ '';
+          const businessHours = /*[[${businessHours}]]*/ [];
           
-          const rawBusinessHours = /*[[${businessHours}]]*/ [];
-          const mapDay = {
-              'SUNDAY': 0, 'MONDAY': 1, 'TUESDAY': 2, 'WEDNESDAY': 3,
-              'THURSDAY': 4, 'FRIDAY': 5, 'SATURDAY': 6
-          };
+          let currentView = 'month';
+          let currentDate = new Date();
+          let events = [];
           
-          let fcBusinessHours = [];
-          rawBusinessHours.forEach(bh => {
-              if (bh.regularHoliday) return;
-              const dow = [mapDay[bh.dayOfWeek]];
-              if (bh.breakStartAt && bh.breakEndAt) {
-                  fcBusinessHours.push({ daysOfWeek: dow, startTime: bh.openAt, endTime: bh.breakStartAt });
-                  fcBusinessHours.push({ daysOfWeek: dow, startTime: bh.breakEndAt, endTime: bh.closeAt });
-              } else if (bh.openAt && bh.closeAt) {
-                  fcBusinessHours.push({ daysOfWeek: dow, startTime: bh.openAt, endTime: bh.closeAt });
-              }
-          });
-
+          const dayNamesEnum = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+          
+          function isClinicRegularHoliday(date) {
+              const dStr = dayNamesEnum[date.getDay()];
+              const bh = businessHours.find(b => b.dayOfWeek === dStr);
+              return bh ? bh.regularHoliday : false;
+          }
+          
+          const viewContainer = document.getElementById('viewContainer');
+          const dateLabel = document.getElementById('currentDateLabel');
           let eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
           let currentEventId = null;
 
-          const calendar = new FullCalendar.Calendar(calendarEl, {
-            locale: 'ja',
-            initialView: 'dayGridMonth',
-            businessHours: fcBusinessHours,
-            headerToolbar: {
-              left: 'prev,next today',
-              center: 'title',
-              right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            },
-            selectable: true,
-            dayCellDidMount: function(arg) {
-                if (JapaneseHolidays.isHoliday(arg.date)) {
-                    arg.el.classList.add('fc-holiday');
-                }
-            },
-            dayHeaderDidMount: function(arg) {
-                if (JapaneseHolidays.isHoliday(arg.date)) {
-                    arg.el.classList.add('fc-holiday');
-                }
-            },
-            dateClick: function(info) {
-              openModal(info.dateStr);
-            },
-            eventClick: function(info) {
-              const ev = info.event.extendedProps;
-              openModal(ev.targetDate, ev);
-            },
-            events: function(info, successCallback, failureCallback) {
-              const startStr = info.start.getFullYear() + '-' + String(info.start.getMonth() + 1).padStart(2, '0') + '-' + String(info.start.getDate()).padStart(2, '0');
-              const endStr = info.end.getFullYear() + '-' + String(info.end.getMonth() + 1).padStart(2, '0') + '-' + String(info.end.getDate()).padStart(2, '0');
-              const params = new URLSearchParams({
-                start: startStr,
-                end: endStr
+          function toLocalISOString(date) {
+              const y = date.getFullYear();
+              const m = (date.getMonth() + 1).toString().padStart(2, '0');
+              const d = date.getDate().toString().padStart(2, '0');
+              return `${y}-${m}-${d}`;
+          }
+
+          async function fetchEvents(start, end) {
+              const startStr = toLocalISOString(start);
+              const endStr = toLocalISOString(end);
+              try {
+                  const res = await fetch(`/clinic/calendar/events?start=${startStr}&end=${endStr}`);
+                  events = await res.json();
+              } catch (e) {
+                  console.error("Failed to fetch events", e);
+              }
+          }
+
+          function setupEventListeners() {
+              document.querySelectorAll('input[name="viewType"]').forEach(radio => {
+                  radio.addEventListener('change', (e) => {
+                      currentView = e.target.value;
+                      loadView();
+                  });
               });
-              fetch('/clinic/calendar/events?' + params, {
-                  headers: { 'Accept': 'application/json' }
-              })
-              .then(r => r.json())
-              .then(data => {
-                const events = [];
-                data.forEach(e => {
+
+              document.getElementById('btnPrev').addEventListener('click', () => {
+                  if (currentView === 'month') { currentDate.setMonth(currentDate.getMonth() - 1); }
+                  else if (currentView === 'week') { currentDate.setDate(currentDate.getDate() - 7); }
+                  else { currentDate.setDate(currentDate.getDate() - 1); }
+                  loadView();
+              });
+
+              document.getElementById('btnNext').addEventListener('click', () => {
+                  if (currentView === 'month') { currentDate.setMonth(currentDate.getMonth() + 1); }
+                  else if (currentView === 'week') { currentDate.setDate(currentDate.getDate() + 7); }
+                  else { currentDate.setDate(currentDate.getDate() + 1); }
+                  loadView();
+              });
+
+              document.getElementById('btnToday').addEventListener('click', () => {
+                  currentDate = new Date();
+                  loadView();
+              });
+          }
+
+          async function loadView() {
+              let start, end;
+              if (currentView === 'month') {
+                  start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                  end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+                  const startDay = start.getDay();
+                  start.setDate(start.getDate() - startDay);
+                  end.setDate(end.getDate() + (6 - end.getDay()));
+                  dateLabel.innerText = `${currentDate.getFullYear()}年 ${currentDate.getMonth() + 1}月`;
+              } else if (currentView === 'week') {
+                  start = new Date(currentDate);
+                  start.setDate(start.getDate() - start.getDay());
+                  end = new Date(start);
+                  end.setDate(end.getDate() + 6);
+                  dateLabel.innerText = `${start.getMonth() + 1}/${start.getDate()} - ${end.getMonth() + 1}/${end.getDate()}`;
+              } else {
+                  start = new Date(currentDate);
+                  end = new Date(currentDate);
+                  dateLabel.innerText = `${currentDate.getFullYear()}年 ${currentDate.getMonth() + 1}月 ${currentDate.getDate()}日`;
+              }
+
+              await fetchEvents(start, end);
+              renderCurrentView();
+          }
+
+          function renderCurrentView() {
+              viewContainer.innerHTML = '';
+              if (currentView === 'month') renderMonthView();
+              else if (currentView === 'week') renderWeekView();
+              else renderDayView();
+          }
+
+          function getEventHtml(e) {
+              const isHoliday = e.type === 'HOLIDAY';
+              const isAll = e.dentistId == null;
+              let title = isHoliday ? (isAll ? '全院休診' : (e.dentistName + ' 休み')) : (isAll ? '全院 特別診療' : (e.dentistName + ' 特別診療'));
+              let className = isHoliday ? (isAll ? 'event-holiday-all' : 'event-holiday-dentist') : 'event-special';
+              
+              const isAllDay = e.isAllDay !== null ? e.isAllDay : (e.startAt == null && e.endAt == null);
+              let timeText = isAllDay ? '終日' : `${e.startAt.substring(0,5)}〜${e.endAt.substring(0,5)}`;
+              
+              const encoded = encodeURIComponent(JSON.stringify(e));
+              return `<div class="event-block ${className}" onclick="event.stopPropagation(); openModal('${e.targetDate}', decodeURIComponent('${encoded}'))">
+                          ${title} (${timeText})
+                      </div>`;
+          }
+
+          function renderMonthView() {
+              let html = '<div class="month-grid">';
+              const days = ['日', '月', '火', '水', '木', '金', '土'];
+              days.forEach(d => html += `<div class="month-grid-header">${d}</div>`);
+
+              const iterDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+              iterDate.setDate(iterDate.getDate() - iterDate.getDay());
+
+              for (let i = 0; i < 42; i++) {
+                  const dateStr = toLocalISOString(iterDate);
+                  const isCurrentMonth = iterDate.getMonth() === currentDate.getMonth();
+                  const isHoliday = JapaneseHolidays.isHoliday(iterDate);
+                  const isSun = iterDate.getDay() === 0;
+                  const isSat = iterDate.getDay() === 6;
+                  const isRegHoliday = isClinicRegularHoliday(iterDate);
+                  
+                  let dateColor = '';
+                  if (isHoliday || isSun) dateColor = 'color: #dc3545;';
+                  else if (isSat) dateColor = 'color: #0d6efd;';
+
+                  let dayEventsHtml = events.filter(e => {
+                      let dStr = e.targetDate;
+                      if (Array.isArray(dStr)) dStr = `${dStr[0]}-${dStr[1].toString().padStart(2,'0')}-${dStr[2].toString().padStart(2,'0')}`;
+                      return typeof dStr === 'string' && dStr.startsWith(dateStr);
+                  }).map(getEventHtml).join('');
+
+                  let cellClass = `month-cell ${isCurrentMonth ? '' : 'out-of-month'}`;
+                  let cellStyle = isRegHoliday ? 'background-color: #e9ecef;' : '';
+
+                  html += `
+                  <div class="${cellClass}" style="${cellStyle}" onclick="openModal('${dateStr}')">
+                      <div class="month-date" style="${dateColor}">${iterDate.getDate()} ${isHoliday ? '<span style="font-size:0.7rem;font-weight:normal;">'+isHoliday+'</span>' : ''}</div>
+                      ${dayEventsHtml}
+                  </div>`;
+                  iterDate.setDate(iterDate.getDate() + 1);
+              }
+              html += '</div>';
+              viewContainer.innerHTML = html;
+          }
+
+          function renderWeekView() {
+              let html = '<div class="week-grid">';
+              html += '<div class="week-header">時間</div>';
+              
+              const startOfWeek = new Date(currentDate);
+              startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+              
+              const dayNames = ['日','月','火','水','木','金','土'];
+              const schedules = [];
+              for (let i = 0; i < 7; i++) {
+                  const d = new Date(startOfWeek);
+                  d.setDate(d.getDate() + i);
+                  const dateStr = toLocalISOString(d);
+                  schedules.push(dateStr);
+                  
+                  const isHoliday = JapaneseHolidays.isHoliday(d);
+                  const isSun = d.getDay() === 0;
+                  const isSat = d.getDay() === 6;
+                  let dateColor = '';
+                  if (isHoliday || isSun) dateColor = 'color: #dc3545;';
+                  else if (isSat) dateColor = 'color: #0d6efd;';
+
+                  html += `<div class="week-header" style="${dateColor}">${d.getDate()} (${dayNames[d.getDay()]})</div>`;
+              }
+              
+              // Draw "All Day" row
+              html += `<div class="time-col d-flex align-items-center justify-content-end" style="font-weight:bold;">終日</div>`;
+              for (let i = 0; i < 7; i++) {
+                  const dateStr = schedules[i];
+                  const d = new Date(startOfWeek);
+                  d.setDate(d.getDate() + i);
+                  const isRegHoliday = isClinicRegularHoliday(d);
+                  
+                  const dayEvents = events.filter(e => {
+                      let dStr = e.targetDate;
+                      if (Array.isArray(dStr)) dStr = `${dStr[0]}-${dStr[1].toString().padStart(2,'0')}-${dStr[2].toString().padStart(2,'0')}`;
+                      return dStr === dateStr;
+                  });
+                  const allDayEvents = dayEvents.filter(e => (e.isAllDay !== null ? e.isAllDay : (e.startAt == null && e.endAt == null)));
+                  
+                  let cellStyle = isRegHoliday ? 'background: #e9ecef;' : 'background: #f8f9fa;';
+                  html += `<div class="week-cell" style="${cellStyle}" onclick="openModal('${dateStr}')">
+                              ${allDayEvents.map(getEventHtml).join('')}
+                           </div>`;
+              }
+
+              // Draw Time slots (09:00 - 18:00)
+              for (let h = 9; h < 19; h++) {
+                  const timeStr = `${h.toString().padStart(2, '0')}:00`;
+                  html += `<div class="time-col d-flex align-items-center justify-content-end">${timeStr}</div>`;
+                  
+                  for (let i = 0; i < 7; i++) {
+                      const dateStr = schedules[i];
+                      const d = new Date(startOfWeek);
+                      d.setDate(d.getDate() + i);
+                      const isRegHoliday = isClinicRegularHoliday(d);
+                      
+                      const slotStartStr = `${timeStr}:00`;
+                      const slotEndStr = `${(h+1).toString().padStart(2, '0')}:00:00`;
+                      
+                      const dayEvents = events.filter(e => {
+                          let dStr = e.targetDate;
+                          if (Array.isArray(dStr)) dStr = `${dStr[0]}-${dStr[1].toString().padStart(2,'0')}-${dStr[2].toString().padStart(2,'0')}`;
+                          return dStr === dateStr;
+                      });
+                      
+                      const timeEvents = dayEvents.filter(e => {
+                          const isAllDay = e.isAllDay !== null ? e.isAllDay : (e.startAt == null && e.endAt == null);
+                          if (isAllDay) return false;
+                          let eStart = e.startAt;
+                          if (Array.isArray(eStart)) eStart = `${eStart[0].toString().padStart(2,'0')}:${eStart[1].toString().padStart(2,'0')}:00`;
+                          else if (eStart.length === 5) eStart += ':00';
+                          return eStart >= slotStartStr && eStart < slotEndStr;
+                      });
+
+                      let cellStyle = isRegHoliday ? 'background: #e9ecef;' : '';
+                      html += `<div class="week-cell" style="${cellStyle}" onclick="openModal('${dateStr}')">
+                                  ${timeEvents.map(getEventHtml).join('')}
+                               </div>`;
+                  }
+              }
+              html += '</div>';
+              viewContainer.innerHTML = html;
+          }
+
+          function renderDayView() {
+              const dateStr = toLocalISOString(currentDate);
+              const dayEvents = events.filter(e => {
+                  let dStr = e.targetDate;
+                  if (Array.isArray(dStr)) dStr = `${dStr[0]}-${dStr[1].toString().padStart(2,'0')}-${dStr[2].toString().padStart(2,'0')}`;
+                  return dStr === dateStr;
+              });
+              
+              const allDayEvents = dayEvents.filter(e => (e.isAllDay !== null ? e.isAllDay : (e.startAt == null && e.endAt == null)));
+              const timeEvents = dayEvents.filter(e => !(e.isAllDay !== null ? e.isAllDay : (e.startAt == null && e.endAt == null)));
+
+              let html = '<div class="day-container">';
+              
+              // Time column
+              html += '<div class="day-time-col"><div class="day-header">時間</div>';
+              html += `<div class="time-label" style="font-weight:bold;">終日</div>`;
+              for (let h = 9; h < 19; h++) {
+                  for (let m of ['00', '30']) {
+                      html += `<div class="time-label">${h.toString().padStart(2, '0')}:${m}</div>`;
+                  }
+              }
+              html += '</div>';
+
+              // Content column (single clinic-wide column)
+              const isRegHoliday = isClinicRegularHoliday(currentDate);
+              const dayBgStyle = isRegHoliday ? 'background: #e9ecef;' : 'background: #fff;';
+              
+              html += `<div class="day-content-col" style="${dayBgStyle}">
+                          <div class="day-header">全院 / 歯科医師の設定</div>`;
+              
+              // All day slot
+              let allDayStyle = isRegHoliday ? 'background: #e2e3e5;' : 'background: #f8f9fa;';
+              html += `<div class="time-slot" style="${allDayStyle}" onclick="openModal('${dateStr}')">
+                          ${allDayEvents.map(e => {
+                              const isHoliday = e.type === 'HOLIDAY';
+                              const isAll = e.dentistId == null;
+                              let title = isHoliday ? (isAll ? '全院休診' : (e.dentistName + ' 休み')) : (isAll ? '全院 特別診療' : (e.dentistName + ' 特別診療'));
+                              let className = isHoliday ? (isAll ? 'event-holiday-all' : 'event-holiday-dentist') : 'event-special';
+                              const encoded = encodeURIComponent(JSON.stringify(e));
+                              return `<div class="day-event-block ${className}" style="position:relative; left:2px; right:2px; margin-bottom:2px;" onclick="event.stopPropagation(); openModal('${dateStr}', decodeURIComponent('${encoded}'))">${title}</div>`;
+                          }).join('')}
+                       </div>`;
+              
+              // Time grid
+              const pixelPerHour = 80;
+              html += `<div class="position-relative flex-grow-1" style="height: ${10 * pixelPerHour}px;" onclick="openModal('${dateStr}')">`;
+              
+              for (let i = 0; i < 20; i++) {
+                  html += `<div class="time-slot" style="top: ${i*40}px; position:absolute; width:100%;"></div>`;
+              }
+              
+              timeEvents.forEach(e => {
+                  let aStartStr = e.startAt;
+                  let aEndStr = e.endAt;
+                  if (Array.isArray(aStartStr)) aStartStr = `${aStartStr[0].toString().padStart(2,'0')}:${aStartStr[1].toString().padStart(2,'0')}`;
+                  if (Array.isArray(aEndStr)) aEndStr = `${aEndStr[0].toString().padStart(2,'0')}:${aEndStr[1].toString().padStart(2,'0')}`;
+                  
+                  const startDt = new Date(`${dateStr}T${aStartStr}`);
+                  const endDt = new Date(`${dateStr}T${aEndStr}`);
+                  
+                  const startMinutes = (startDt.getHours() - 9) * 60 + startDt.getMinutes();
+                  const durationMinutes = (endDt.getTime() - startDt.getTime()) / 60000;
+                  
+                  const top = (startMinutes / 60) * pixelPerHour;
+                  const height = (durationMinutes / 60) * pixelPerHour;
+                  
                   const isHoliday = e.type === 'HOLIDAY';
                   const isAll = e.dentistId == null;
+                  let title = isHoliday ? (isAll ? '全院休診' : (e.dentistName + ' 休み')) : (isAll ? '全院 特別診療' : (e.dentistName + ' 特別診療'));
+                  let className = isHoliday ? (isAll ? 'event-holiday-all' : 'event-holiday-dentist') : 'event-special';
                   
-                  let title = '';
-                  if (isHoliday) {
-                      title = isAll ? '全院休診' : (e.dentistName + ' 休み');
-                  } else {
-                      title = isAll ? '全院 特別診療' : (e.dentistName + ' 特別診療');
-                  }
+                  const encoded = encodeURIComponent(JSON.stringify(e));
                   
-                  const isAllDay = e.startAt == null && e.endAt == null;
-                  const color = isHoliday ? (isAll ? '#dc3545' : '#ffc107') : '#198754';
-                  
-                  if (!isAllDay && e.breakStartAt && e.breakEndAt) {
-                      // 休憩がある場合、午前と午後で分割して表示
-                      events.push({
-                          id: e.calendarId + '_am',
-                          title: title,
-                          start: e.targetDate + 'T' + e.startAt,
-                          end: e.targetDate + 'T' + e.breakStartAt,
-                          allDay: false,
-                          color: color,
-                          extendedProps: e
-                      });
-                      events.push({
-                          id: e.calendarId + '_pm',
-                          title: title,
-                          start: e.targetDate + 'T' + e.breakEndAt,
-                          end: e.targetDate + 'T' + e.endAt,
-                          allDay: false,
-                          color: color,
-                          extendedProps: e
-                      });
-                  } else {
-                      events.push({
-                        id: e.calendarId,
-                        title: title,
-                        start: e.targetDate + (e.startAt ? 'T' + e.startAt : ''),
-                        end: e.endAt ? (e.targetDate + 'T' + e.endAt) : null,
-                        allDay: isAllDay,
-                        color: color,
-                        extendedProps: e
-                      });
-                  }
-                });
-                successCallback(events);
-              })
-              .catch(error => {
-                  console.error('Error fetching events:', error);
-                  failureCallback(error);
+                  html += `
+                  <div class="day-event-block ${className}" style="top: ${top}px; height: ${height}px;" onclick="event.stopPropagation(); openModal('${dateStr}', decodeURIComponent('${encoded}'))">
+                      <div>${title}</div>
+                      <div style="font-size:0.7rem;">${aStartStr.substring(0,5)} 〜 ${aEndStr.substring(0,5)}</div>
+                  </div>`;
               });
-            }
-          });
-          calendar.render();
 
+              html += `</div></div></div>`;
+              viewContainer.innerHTML = html;
+          }
+
+          // Modal Logic
           const typeRadios = document.querySelectorAll('input[name="exceptionType"]');
           const scopeRadios = document.querySelectorAll('input[name="targetScope"]');
           const dentistSection = document.getElementById('dentistSection');
@@ -359,13 +589,16 @@
           function updateFormVisibility() {
               const type = document.querySelector('input[name="exceptionType"]:checked').value;
               const scope = document.querySelector('input[name="targetScope"]:checked').value;
-              
               dentistSection.style.display = (scope === 'DENTIST') ? 'block' : 'none';
               
-              if (allDayCheck.checked) {
+              if (type === 'HOLIDAY') {
+                  allDayCheck.checked = true;
+                  allDayCheck.disabled = true;
                   timeSection.style.display = 'none';
-              } else {
-                  timeSection.style.display = 'flex';
+              } else if (type === 'SPECIAL') {
+                  allDayCheck.checked = false;
+                  allDayCheck.disabled = true;
+                  timeSection.style.display = 'block'; // 'flex' was removed in favor of block with grid/row inside
               }
           }
 
@@ -373,8 +606,9 @@
           scopeRadios.forEach(r => r.addEventListener('change', updateFormVisibility));
           allDayCheck.addEventListener('change', updateFormVisibility);
 
-          function openModal(dateStr, existing = null) {
+          window.openModal = function(dateStr, existingJson = null) {
             document.getElementById('targetDate').value = dateStr;
+            let existing = existingJson ? JSON.parse(existingJson) : null;
             currentEventId = existing ? existing.calendarId : null;
             document.getElementById('eventId').value = currentEventId || '';
             
@@ -389,14 +623,22 @@
                     document.getElementById('dentistSelect').value = '';
                 }
                 
-                if (existing.startAt || existing.endAt) {
-                    allDayCheck.checked = false;
-                    document.getElementById('startAt').value = existing.startAt || '';
-                    document.getElementById('endAt').value = existing.endAt || '';
-                    document.getElementById('breakStartAt').value = existing.breakStartAt || '';
-                    document.getElementById('breakEndAt').value = existing.breakEndAt || '';
+                const isAllDay = existing.isAllDay !== null ? existing.isAllDay : (existing.startAt == null && existing.endAt == null);
+                if (!isAllDay && (existing.startAt || existing.endAt)) {
+                    let st = existing.startAt;
+                    let en = existing.endAt;
+                    let bst = existing.breakStartAt;
+                    let ben = existing.breakEndAt;
+                    if (Array.isArray(st)) st = `${st[0].toString().padStart(2,'0')}:${st[1].toString().padStart(2,'0')}`;
+                    if (Array.isArray(en)) en = `${en[0].toString().padStart(2,'0')}:${en[1].toString().padStart(2,'0')}`;
+                    if (Array.isArray(bst)) bst = `${bst[0].toString().padStart(2,'0')}:${bst[1].toString().padStart(2,'0')}`;
+                    if (Array.isArray(ben)) ben = `${ben[0].toString().padStart(2,'0')}:${ben[1].toString().padStart(2,'0')}`;
+
+                    document.getElementById('startAt').value = st ? st.substring(0,5) : '';
+                    document.getElementById('endAt').value = en ? en.substring(0,5) : '';
+                    document.getElementById('breakStartAt').value = bst ? bst.substring(0,5) : '';
+                    document.getElementById('breakEndAt').value = ben ? ben.substring(0,5) : '';
                 } else {
-                    allDayCheck.checked = true;
                     document.getElementById('startAt').value = '';
                     document.getElementById('endAt').value = '';
                     document.getElementById('breakStartAt').value = '';
@@ -406,7 +648,6 @@
                 document.getElementById('typeHoliday').checked = true;
                 document.getElementById('scopeAll').checked = true;
                 document.getElementById('dentistSelect').value = '';
-                allDayCheck.checked = true;
                 document.getElementById('startAt').value = '';
                 document.getElementById('endAt').value = '';
                 document.getElementById('breakStartAt').value = '';
@@ -414,10 +655,9 @@
             }
             
             updateFormVisibility();
-            
             document.getElementById('deleteBtn').style.display = existing ? 'inline-block' : 'none';
             eventModal.show();
-          }
+          };
 
           document.getElementById('saveBtn').addEventListener('click', () => {
             const type = document.querySelector('input[name="exceptionType"]:checked').value;
@@ -443,6 +683,7 @@
               targetDate: document.getElementById('targetDate').value,
               type: type,
               dentistId: scope === 'ALL' ? null : (dentistId ? dentistId : null),
+              isAllDay: isAllDay,
               startAt: isAllDay ? null : (startAt ? startAt : null),
               endAt: isAllDay ? null : (endAt ? endAt : null),
               breakStartAt: isAllDay ? null : (breakStartAt ? breakStartAt : null),
@@ -458,15 +699,11 @@
               body: JSON.stringify(form)
             }).then(async r => {
                 if (r.ok) {
-                    calendar.refetchEvents();
                     eventModal.hide();
+                    loadView();
                 } else {
                     const data = await r.json().catch(() => null);
-                    if (data && data.message) {
-                        alert("保存に失敗しました:\n" + data.message);
-                    } else {
-                        alert("保存に失敗しました。");
-                    }
+                    alert("保存に失敗しました:\n" + (data ? data.message : ""));
                 }
             });
           });
@@ -475,19 +712,21 @@
             if (currentEventId && confirm('本当に削除しますか？')) {
               fetch('/clinic/calendar/event/' + currentEventId, {
                   method: 'DELETE',
-                  headers: {
-                      [csrfHeader]: csrfToken
-                  }
+                  headers: { [csrfHeader]: csrfToken }
               }).then(r => {
                   if (r.ok) {
-                      calendar.refetchEvents();
                       eventModal.hide();
+                      loadView();
                   } else {
                       alert("削除に失敗しました。");
                   }
               });
             }
           });
+
+          // Start
+          setupEventListeners();
+          loadView();
       });
       /*]]>*/
     </script>

@@ -39,7 +39,7 @@ public class DentalChairService {
     public List<DentalChairDto> getChairsByLoginId(String loginId) {
         DentalClinic clinic = dentalClinicRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid loginId"));
-        return dentalChairRepository.findByDentalClinic(clinic).stream()
+        return dentalChairRepository.findByDentalClinicAndIsDeletedFalse(clinic).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }

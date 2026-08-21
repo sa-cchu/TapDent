@@ -27,9 +27,9 @@ public class TreatmentTypeService {
         DentalClinic clinic = dentalClinicRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid loginId"));
         if (targetPatientType != null) {
-            return treatmentTypeRepository.findByDentalClinicAndTargetPatientType(clinic, targetPatientType);
+            return treatmentTypeRepository.findByDentalClinicAndTargetPatientTypeAndIsDeletedFalse(clinic, targetPatientType);
         }
-        return treatmentTypeRepository.findByDentalClinic(clinic);
+        return treatmentTypeRepository.findByDentalClinicAndIsDeletedFalse(clinic);
     }
 
     @Transactional(readOnly = true)

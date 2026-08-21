@@ -40,6 +40,10 @@ public class ClinicTreatmentController {
                                @Validated @ModelAttribute TreatmentTypeForm form,
                                BindingResult bindingResult,
                                RedirectAttributes redirectAttributes) {
+        if (form.getRequiredMinutes() != null && form.getRequiredMinutes() % 30 != 0) {
+            bindingResult.rejectValue("requiredMinutes", "error.requiredMinutes", "所要時間は30分単位で入力してください");
+        }
+        
         if (bindingResult.hasErrors()) {
             return "clinic/treatments/form";
         }
@@ -72,6 +76,10 @@ public class ClinicTreatmentController {
                              BindingResult bindingResult,
                              Model model,
                              RedirectAttributes redirectAttributes) {
+        if (form.getRequiredMinutes() != null && form.getRequiredMinutes() % 30 != 0) {
+            bindingResult.rejectValue("requiredMinutes", "error.requiredMinutes", "所要時間は30分単位で入力してください");
+        }
+        
         if (bindingResult.hasErrors()) {
             model.addAttribute("treatmentId", id);
             return "clinic/treatments/form";

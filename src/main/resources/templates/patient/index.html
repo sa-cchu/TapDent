@@ -104,6 +104,20 @@
             box-shadow: 0 8px 15px rgba(73, 80, 87, 0.2);
         }
 
+        /* 変更・キャンセルボタン */
+        .btn-manage {
+            background-color: #ffffff;
+            color: #6c757d;
+            border-color: #e9ecef;
+        }
+        .btn-manage:hover {
+            background-color: #6c757d;
+            color: #ffffff;
+            border-color: #6c757d;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(108, 117, 125, 0.2);
+        }
+
         .button-content {
             display: flex;
             align-items: center;
@@ -181,6 +195,17 @@
                     <div class="button-text">
                         <span class="button-main-text">2回目以降の方</span>
                         <span class="button-sub-text">以前に当院を受診したことがある方（再診）</span>
+                    </div>
+                </div>
+                <i class="bi bi-chevron-right chevron-icon"></i>
+            </a>
+
+            <a th:href="@{/patient/{token}/login(token=${token})}" class="action-button btn-manage">
+                <div class="button-content">
+                    <i class="bi bi-calendar-x button-icon"></i>
+                    <div class="button-text">
+                        <span class="button-main-text">時間の変更・キャンセル</span>
+                        <span class="button-sub-text">すでに取っている予約の確認・変更はこちら</span>
                     </div>
                 </div>
                 <i class="bi bi-chevron-right chevron-icon"></i>

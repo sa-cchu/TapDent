@@ -7,6 +7,7 @@
     <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <title>ご予約 | TapDent</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
         body { background-color: #f8f9fa; font-family: 'Noto Sans JP', sans-serif; }
         .reserve-container { max-width: 600px; margin: 2rem auto; }
@@ -185,6 +186,10 @@
                                 <input type="email" class="form-control" id="formEmail" required pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$" title="正しいメールアドレス形式で入力してください">
                                 <div class="invalid-feedback">正しいメールアドレス形式で入力してください</div>
                             </div>
+                            <div class="mb-3 d-none" id="patientCodeContainer">
+                                <label class="form-label">診察券番号（任意）</label>
+                                <input type="text" class="form-control" id="formPatientCode" placeholder="お手元に診察券がある場合はご入力ください">
+                            </div>
                             <div class="mb-4">
                                 <label class="form-label">医院へのメッセージ（任意）</label>
                                 <textarea class="form-control" id="formComment" rows="3"></textarea>
@@ -221,6 +226,7 @@
                                         <tr><th>性別</th><td id="confirmGender"></td></tr>
                                         <tr><th>電話番号</th><td id="confirmTel"></td></tr>
                                         <tr><th>メールアドレス</th><td id="confirmEmail"></td></tr>
+                                        <tr id="confirmPatientCodeRow" class="d-none"><th>診察券番号</th><td id="confirmPatientCode"></td></tr>
                                         <tr><th>メッセージ</th><td id="confirmComment" style="white-space: pre-wrap;"></td></tr>
                                     </tbody>
                                 </table>
@@ -270,11 +276,42 @@
         </div>
     </div>
 
+    <!-- Phone Booking Modal -->
+    <div class="modal fade" id="phoneBookingModal" tabindex="-1" aria-labelledby="phoneBookingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-primary" id="phoneBookingModalLabel">お電話でのご予約案内</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <i class="bi bi-telephone-fill text-primary" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 mb-4">こちらのメニューはオンライン予約不可です</h5>
+                    <p class="mb-4">
+                        お手数ですが、以下の電話番号まで<br>直接お電話にてご予約をお願いいたします。
+                    </p>
+                    <div class="bg-light p-3 rounded mb-4">
+                        <strong class="d-block mb-1 text-secondary">電話番号</strong>
+                        <a th:href="'tel:' + ${clinic.tel}" class="fs-3 fw-bold text-decoration-none" th:if="${clinic.tel != null}">
+                            <span th:text="${clinic.tel}"></span>
+                        </a>
+                        <span class="fs-3 fw-bold text-dark" th:if="${clinic.tel == null}">未登録</span>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">メニューを選び直す</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <script th:inline="javascript">
         const token = /*[[${token}]]*/ 'token';
         const state = {
             treatmentId: null,
             treatmentName: null,
+            treatmentStatus: null,
             reservationDate: null,
             reservationTime: null,
             maxReserveMonth: 3,
@@ -311,6 +348,9 @@
                     if (genderRadio) genderRadio.checked = true;
                     document.getElementById('formTel').value = data.patient.tel;
                     document.getElementById('formEmail').value = data.patient.email;
+                    if (data.patient.patientCode) {
+                        document.getElementById('formPatientCode').value = data.patient.patientCode;
+                    }
                 }
             })
             .catch(err => showError('初期データの取得に失敗しました。'));
@@ -326,7 +366,7 @@
                 html += `
                 <div class="col-12">
                     <label class="w-100">
-                        <input type="radio" name="treatmentId" class="menu-input" value="${t.treatmentId}" data-name="${t.treatmentName}">
+                        <input type="radio" name="treatmentId" class="menu-input" value="${t.treatmentId}" data-name="${t.treatmentName}" data-status="${t.status}">
                         <div class="card menu-card h-100">
                             <div class="card-body">
                                 <h5 class="card-title text-primary">${t.treatmentName}</h5>
@@ -342,6 +382,7 @@
                 radio.addEventListener('change', (e) => {
                     state.treatmentId = e.target.value;
                     state.treatmentName = e.target.getAttribute('data-name');
+                    state.treatmentStatus = e.target.getAttribute('data-status');
                     document.getElementById('btnNext1').disabled = false;
                 });
             });
@@ -400,6 +441,13 @@
                 document.getElementById('confirmGender').innerText = genderVal === '1' ? '男性' : '女性';
                 document.getElementById('confirmTel').innerText = document.getElementById('formTel').value;
                 document.getElementById('confirmEmail').innerText = document.getElementById('formEmail').value;
+                const patientCode = document.getElementById('formPatientCode').value;
+                if (patientCode) {
+                    document.getElementById('confirmPatientCodeRow').classList.remove('d-none');
+                    document.getElementById('confirmPatientCode').innerText = patientCode;
+                } else {
+                    document.getElementById('confirmPatientCodeRow').classList.add('d-none');
+                }
                 document.getElementById('confirmComment').innerText = document.getElementById('formComment').value;
                 
                 // メールアドレスが変更されていなければ、ボタンのテキストを「予約を確定する」に変更
@@ -415,6 +463,9 @@
             }
 
             document.getElementById(`step${step}`).classList.add('active');
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+            }, 10);
         }
 
         function showError(msg) {
@@ -423,7 +474,14 @@
             window.scrollTo(0, 0);
         }
 
-        document.getElementById('btnNext1').addEventListener('click', () => goToStep(2));
+        document.getElementById('btnNext1').addEventListener('click', () => {
+            if (state.treatmentStatus === 'false') {
+                const phoneBookingModal = new bootstrap.Modal(document.getElementById('phoneBookingModal'));
+                phoneBookingModal.show();
+            } else {
+                goToStep(2);
+            }
+        });
         document.getElementById('btnNext2').addEventListener('click', () => goToStep(3));
         document.getElementById('btnNext3').addEventListener('click', () => goToStep(4));
         document.getElementById('btnNext4').addEventListener('click', () => sendVerificationCode());
@@ -476,6 +534,7 @@
                 gender: document.querySelector('input[name="formGender"]:checked').value,
                 tel: document.getElementById('formTel').value,
                 email: document.getElementById('formEmail').value,
+                patientCode: document.getElementById('formPatientCode').value,
                 patientComment: document.getElementById('formComment').value
             };
             
@@ -719,5 +778,6 @@
                 });
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

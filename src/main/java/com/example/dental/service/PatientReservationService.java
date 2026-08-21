@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import com.example.dental.entity.Appointment;
+import com.example.dental.enums.VisitType;
 
 @Service
 public class PatientReservationService {
@@ -44,6 +45,13 @@ public class PatientReservationService {
             jdbcTemplate.execute("ALTER TABLE patients MODIFY patient_code VARCHAR(20) NULL;");
         } catch (Exception e) {
             // エラーは無視（すでにNULL許可されているか、権限がない場合など）
+        }
+        try {
+            jdbcTemplate.execute("ALTER TABLE patients MODIFY locked_untill DATETIME(6) NULL;");
+            // すでに過去の日付が入っているデータをNULLに更新
+            jdbcTemplate.execute("UPDATE patients SET locked_untill = NULL WHERE locked_untill < NOW();");
+        } catch (Exception e) {
+            // エラーは無視
         }
         try {
             jdbcTemplate.execute("ALTER TABLE patients DROP COLUMN delete_frag;");
@@ -84,14 +92,14 @@ public class PatientReservationService {
         patient.setRole(role);
         
         patient.setLoginAttempts(0);
-        patient.setLockedUntill(LocalDateTime.now().minusDays(1)); // 初期値は過去日時（ロックされていない状態）
+        patient.setLockedUntill(null); // ロックされていない状態はNULL
         patient.setIsDeleted(false);
 
         // ※ 診察券番号 (patientCode) は来院時に発行するため初回登録時は null とする想定
         patient = patientRepository.save(patient);
 
         // 2. 予約の作成
-        return appointmentService.createAppointment(clinic, patient, treatment, form.getReservationDate(), form.getReservationTime(), form.getPatientComment());
+        return appointmentService.createAppointment(clinic, patient, treatment, form.getReservationDate(), form.getReservationTime(), form.getPatientComment(), VisitType.FIRST_VISIT);
     }
 
     /**
@@ -110,9 +118,13 @@ public class PatientReservationService {
         existingPatient.setTel(form.getTel());
         existingPatient.setEmail(form.getEmail());
         
+        if (form.getPatientCode() != null && !form.getPatientCode().isBlank()) {
+            existingPatient.setPatientCode(form.getPatientCode());
+        }
+        
         patientRepository.save(existingPatient);
 
         // 予約の作成
-        return appointmentService.createAppointment(clinic, existingPatient, treatment, form.getReservationDate(), form.getReservationTime(), form.getPatientComment());
+        return appointmentService.createAppointment(clinic, existingPatient, treatment, form.getReservationDate(), form.getReservationTime(), form.getPatientComment(), VisitType.RE_VISIT);
     }
 }

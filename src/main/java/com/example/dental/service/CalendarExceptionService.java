@@ -85,17 +85,15 @@ public class CalendarExceptionService {
             Dentist dentist = dentistRepository.findById(dto.getDentistId())
                     .orElseThrow(() -> new IllegalArgumentException("Invalid dentist ID"));
             ex.setDentist(dentist);
-            ex.setStartAt(dto.getStartAt());
-            ex.setEndAt(dto.getEndAt());
-            ex.setBreakStartAt(dto.getBreakStartAt());
-            ex.setBreakEndAt(dto.getBreakEndAt());
         } else {
             ex.setDentist(null);
-            ex.setStartAt(dto.getStartAt()); // Allow times for special consultation without dentist
-            ex.setEndAt(dto.getEndAt());
-            ex.setBreakStartAt(dto.getBreakStartAt());
-            ex.setBreakEndAt(dto.getBreakEndAt());
         }
+        
+        ex.setIsAllDay(dto.getIsAllDay() != null ? dto.getIsAllDay() : true);
+        ex.setStartAt(dto.getStartAt());
+        ex.setEndAt(dto.getEndAt());
+        ex.setBreakStartAt(dto.getBreakStartAt());
+        ex.setBreakEndAt(dto.getBreakEndAt());
         
         ex = repository.save(ex);
         return toDto(ex);
@@ -112,6 +110,7 @@ public class CalendarExceptionService {
         dto.setDentalId(entity.getDentalClinic().getDentalId());
         dto.setTargetDate(entity.getTargetDate());
         dto.setType(entity.getType());
+        dto.setIsAllDay(entity.getIsAllDay());
         dto.setStartAt(entity.getStartAt());
         dto.setEndAt(entity.getEndAt());
         dto.setBreakStartAt(entity.getBreakStartAt());
