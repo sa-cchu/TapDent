@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>システムエラー | TapDent</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .error-card {
+            max-width: 500px;
+            width: 100%;
+            padding: 3rem 2rem;
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            border: none;
+            text-align: center;
+        }
+        .error-icon {
+            font-size: 4rem;
+            color: #dc3545; /* Red for 500 */
+            margin-bottom: 1rem;
+        }
+        .error-title {
+            font-weight: 600;
+            color: #343a40;
+            margin-bottom: 0.5rem;
+        }
+        .error-message {
+            color: #6c757d;
+            margin-bottom: 2rem;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+
+    <main class="error-card" aria-labelledby="error-title">
+        <i class="bi bi-x-circle error-icon" aria-hidden="true"></i>
+        <h1 id="error-title" class="error-title h2">500 System Error</h1>
+        <p class="error-message">予期せぬエラーが発生しました。<br>しばらく経ってから再度お試しいただくか、管理者へお問い合わせください。</p>
+        
+        <!-- CustomErrorControllerから渡される戻るボタン情報 -->
+        <a th:href="@{${redirectUrl != null ? redirectUrl : '/'}}" class="btn btn-primary w-100">
+            <i class="bi bi-arrow-left me-2"></i><span th:text="${roleName != null ? roleName : 'トップページ'}">トップページ</span>へ戻る
+        </a>
+    </main>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

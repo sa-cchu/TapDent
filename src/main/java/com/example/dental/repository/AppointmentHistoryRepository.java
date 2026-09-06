@@ -9,4 +9,7 @@ public interface AppointmentHistoryRepository extends JpaRepository<AppointmentH
     
     // 患者の最新の予約履歴を1件取得
     java.util.Optional<AppointmentHistory> findFirstByPatientPatientIdOrderByStartAtDesc(Long patientId);
+
+    // トークンの最新の予約履歴を1件取得
+    java.util.Optional<AppointmentHistory> findFirstByTokenTokenIdOrderByStartAtDesc(Long tokenId);
 }

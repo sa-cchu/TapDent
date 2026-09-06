@@ -27,4 +27,21 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"treatmentType", "dentist"})
     java.util.Optional<Appointment> findFirstByPatientPatientIdAndStatusInAndStartAtLessThanOrderByStartAtDesc(
         Long patientId, java.util.Collection<com.example.dental.enums.AppointmentStatus> statuses, LocalDateTime date);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"treatmentType", "dentist"})
+    List<Appointment> findByPatientPatientIdOrderByStartAtDesc(Long patientId);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"treatmentType", "dentist"})
+    List<Appointment> findByTokenTokenIdOrderByStartAtDesc(Long tokenId);
+
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT a FROM Appointment a " +
+        "LEFT JOIN a.patient p " +
+        "LEFT JOIN a.token t " +
+        "WHERE a.dentalClinic.dentalId = :clinicId AND a.status != com.example.dental.enums.AppointmentStatus.CANCELLED AND (" +
+        "  p.name LIKE %:keyword% OR p.pronunciationGuide LIKE %:keyword% OR p.tel LIKE %:keyword% OR p.patientCode LIKE %:keyword% OR " +
+        "  t.name LIKE %:keyword% OR t.nameKana LIKE %:keyword% OR t.tell LIKE %:keyword%" +
+        ") ORDER BY a.startAt DESC"
+    )
+    List<Appointment> searchAppointmentsByKeyword(@org.springframework.data.repository.query.Param("clinicId") Long clinicId, @org.springframework.data.repository.query.Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
 }

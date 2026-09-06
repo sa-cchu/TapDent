@@ -55,6 +55,6 @@ public class PatientUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return !patient.getIsDeleted();
+        return !patient.getIsDeleted() && patient.getStatus() != com.example.dental.enums.PatientStatus.WITHDRAWN;
     }
 }

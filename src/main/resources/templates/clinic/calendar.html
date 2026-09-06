@@ -290,6 +290,17 @@
               try {
                   const res = await fetch(`/clinic/calendar/events?start=${startStr}&end=${endStr}`);
                   events = await res.json();
+                  
+                  // Jacksonによって配列化されたLocalDate/LocalTimeを文字列に正規化
+                  events.forEach(e => {
+                      if (Array.isArray(e.targetDate)) {
+                          e.targetDate = `${e.targetDate[0]}-${e.targetDate[1].toString().padStart(2,'0')}-${e.targetDate[2].toString().padStart(2,'0')}`;
+                      }
+                      if (Array.isArray(e.startAt)) e.startAt = `${e.startAt[0].toString().padStart(2,'0')}:${e.startAt[1].toString().padStart(2,'0')}:00`;
+                      if (Array.isArray(e.endAt)) e.endAt = `${e.endAt[0].toString().padStart(2,'0')}:${e.endAt[1].toString().padStart(2,'0')}:00`;
+                      if (Array.isArray(e.breakStartAt)) e.breakStartAt = `${e.breakStartAt[0].toString().padStart(2,'0')}:${e.breakStartAt[1].toString().padStart(2,'0')}:00`;
+                      if (Array.isArray(e.breakEndAt)) e.breakEndAt = `${e.breakEndAt[0].toString().padStart(2,'0')}:${e.breakEndAt[1].toString().padStart(2,'0')}:00`;
+                  });
               } catch (e) {
                   console.error("Failed to fetch events", e);
               }
@@ -304,14 +315,18 @@
               });
 
               document.getElementById('btnPrev').addEventListener('click', () => {
-                  if (currentView === 'month') { currentDate.setMonth(currentDate.getMonth() - 1); }
+                  if (currentView === 'month') { 
+                      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+                  }
                   else if (currentView === 'week') { currentDate.setDate(currentDate.getDate() - 7); }
                   else { currentDate.setDate(currentDate.getDate() - 1); }
                   loadView();
               });
 
               document.getElementById('btnNext').addEventListener('click', () => {
-                  if (currentView === 'month') { currentDate.setMonth(currentDate.getMonth() + 1); }
+                  if (currentView === 'month') { 
+                      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+                  }
                   else if (currentView === 'week') { currentDate.setDate(currentDate.getDate() + 7); }
                   else { currentDate.setDate(currentDate.getDate() + 1); }
                   loadView();
@@ -391,9 +406,7 @@
                   else if (isSat) dateColor = 'color: #0d6efd;';
 
                   let dayEventsHtml = events.filter(e => {
-                      let dStr = e.targetDate;
-                      if (Array.isArray(dStr)) dStr = `${dStr[0]}-${dStr[1].toString().padStart(2,'0')}-${dStr[2].toString().padStart(2,'0')}`;
-                      return typeof dStr === 'string' && dStr.startsWith(dateStr);
+                      return typeof e.targetDate === 'string' && e.targetDate.startsWith(dateStr);
                   }).map(getEventHtml).join('');
 
                   let cellClass = `month-cell ${isCurrentMonth ? '' : 'out-of-month'}`;
@@ -444,9 +457,7 @@
                   const isRegHoliday = isClinicRegularHoliday(d);
                   
                   const dayEvents = events.filter(e => {
-                      let dStr = e.targetDate;
-                      if (Array.isArray(dStr)) dStr = `${dStr[0]}-${dStr[1].toString().padStart(2,'0')}-${dStr[2].toString().padStart(2,'0')}`;
-                      return dStr === dateStr;
+                      return e.targetDate === dateStr;
                   });
                   const allDayEvents = dayEvents.filter(e => (e.isAllDay !== null ? e.isAllDay : (e.startAt == null && e.endAt == null)));
                   
@@ -471,17 +482,14 @@
                       const slotEndStr = `${(h+1).toString().padStart(2, '0')}:00:00`;
                       
                       const dayEvents = events.filter(e => {
-                          let dStr = e.targetDate;
-                          if (Array.isArray(dStr)) dStr = `${dStr[0]}-${dStr[1].toString().padStart(2,'0')}-${dStr[2].toString().padStart(2,'0')}`;
-                          return dStr === dateStr;
+                          return e.targetDate === dateStr;
                       });
                       
                       const timeEvents = dayEvents.filter(e => {
                           const isAllDay = e.isAllDay !== null ? e.isAllDay : (e.startAt == null && e.endAt == null);
                           if (isAllDay) return false;
                           let eStart = e.startAt;
-                          if (Array.isArray(eStart)) eStart = `${eStart[0].toString().padStart(2,'0')}:${eStart[1].toString().padStart(2,'0')}:00`;
-                          else if (eStart.length === 5) eStart += ':00';
+                          if (eStart.length === 5) eStart += ':00';
                           return eStart >= slotStartStr && eStart < slotEndStr;
                       });
 
@@ -498,9 +506,7 @@
           function renderDayView() {
               const dateStr = toLocalISOString(currentDate);
               const dayEvents = events.filter(e => {
-                  let dStr = e.targetDate;
-                  if (Array.isArray(dStr)) dStr = `${dStr[0]}-${dStr[1].toString().padStart(2,'0')}-${dStr[2].toString().padStart(2,'0')}`;
-                  return dStr === dateStr;
+                  return e.targetDate === dateStr;
               });
               
               const allDayEvents = dayEvents.filter(e => (e.isAllDay !== null ? e.isAllDay : (e.startAt == null && e.endAt == null)));
@@ -549,8 +555,6 @@
               timeEvents.forEach(e => {
                   let aStartStr = e.startAt;
                   let aEndStr = e.endAt;
-                  if (Array.isArray(aStartStr)) aStartStr = `${aStartStr[0].toString().padStart(2,'0')}:${aStartStr[1].toString().padStart(2,'0')}`;
-                  if (Array.isArray(aEndStr)) aEndStr = `${aEndStr[0].toString().padStart(2,'0')}:${aEndStr[1].toString().padStart(2,'0')}`;
                   
                   const startDt = new Date(`${dateStr}T${aStartStr}`);
                   const endDt = new Date(`${dateStr}T${aEndStr}`);
@@ -629,10 +633,6 @@
                     let en = existing.endAt;
                     let bst = existing.breakStartAt;
                     let ben = existing.breakEndAt;
-                    if (Array.isArray(st)) st = `${st[0].toString().padStart(2,'0')}:${st[1].toString().padStart(2,'0')}`;
-                    if (Array.isArray(en)) en = `${en[0].toString().padStart(2,'0')}:${en[1].toString().padStart(2,'0')}`;
-                    if (Array.isArray(bst)) bst = `${bst[0].toString().padStart(2,'0')}:${bst[1].toString().padStart(2,'0')}`;
-                    if (Array.isArray(ben)) ben = `${ben[0].toString().padStart(2,'0')}:${ben[1].toString().padStart(2,'0')}`;
 
                     document.getElementById('startAt').value = st ? st.substring(0,5) : '';
                     document.getElementById('endAt').value = en ? en.substring(0,5) : '';

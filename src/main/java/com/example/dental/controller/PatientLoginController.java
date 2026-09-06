@@ -57,6 +57,8 @@ public class PatientLoginController {
         if (error != null) {
             if ("locked".equals(error)) {
                 model.addAttribute("errorMessage", "アカウントが一時的にロックされています。30分後に再度お試しください。");
+            } else if ("frozen".equals(error)) {
+                model.addAttribute("errorMessage", "アカウントが凍結されています。医院へお問い合わせください。");
             } else {
                 model.addAttribute("errorMessage", "メールアドレスまたはパスワードが間違っています。");
             }
@@ -85,6 +87,11 @@ public class PatientLoginController {
         // 削除チェック
         if (patient.getIsDeleted()) {
             return "redirect:/patient/" + token + "/login?error=true";
+        }
+
+        // 凍結チェック
+        if (patient.getStatus() == com.example.dental.enums.PatientStatus.WITHDRAWN) {
+            return "redirect:/patient/" + token + "/login?error=frozen";
         }
         
         // ロックチェック（現在時刻がロック解除時刻より前ならロック中）

@@ -1,4 +1,7 @@
 package com.example.dental.controller;
+import org.springframework.web.bind.annotation.RequestParam;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import com.example.dental.entity.Appointment;
 import com.example.dental.entity.DentalClinic;
@@ -13,11 +16,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 @Controller
 @RequestMapping("/patient/{token}")

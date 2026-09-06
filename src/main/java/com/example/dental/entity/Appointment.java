@@ -12,6 +12,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import com.example.dental.enums.AppointMethod;
@@ -47,10 +49,15 @@ public class Appointment {
 	@JoinColumn(name = "dentist_id", nullable = false)
 	private Dentist dentist;
 
-	// 患者情報との紐付け（必須）
+	// 患者情報との紐付け（Tokenがない場合は必須）
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "patient_id", nullable = false)
+	@JoinColumn(name = "patient_id")
 	private Patient patient;
+
+	// トークン情報との紐付け（アカウントを持たない患者の場合）
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "token_id")
+	private Token token;
 
 	// 診療メニュー情報との紐付け
 	@ManyToOne(fetch = FetchType.LAZY)
@@ -89,4 +96,18 @@ public class Appointment {
 	@Enumerated(EnumType.STRING)
 	@Column(name = "visit_type", nullable = false)
 	private VisitType visitType;
+
+	@PrePersist
+	@PreUpdate
+	private void validatePatientOrToken() {
+		boolean hasPatient = (this.patient != null);
+		boolean hasToken = (this.token != null);
+		
+		if (hasPatient && hasToken) {
+			throw new IllegalStateException("予約には「Patient」と「Token」の両方を設定することはできません。どちらか一方のみ設定してください。");
+		}
+		if (!hasPatient && !hasToken) {
+			throw new IllegalStateException("予約には「Patient」または「Token」のいずれかが必須です。");
+		}
+	}
 }

@@ -1,4 +1,5 @@
 package com.example.dental.controller;
+import java.time.format.DateTimeFormatter;
 
 import com.example.dental.entity.Appointment;
 import com.example.dental.entity.Patient;
@@ -17,7 +18,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 
 @Controller
 @RequestMapping("/patient/{token}/reservation/{appointmentId}")
@@ -50,7 +50,7 @@ public class PatientReservationChangeController {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new IllegalArgumentException("予約が見つかりません"));
                 
-        if (!appointment.getPatient().getPatientId().equals(patient.getPatientId())) {
+        if (appointment.getPatient() == null || !appointment.getPatient().getPatientId().equals(patient.getPatientId())) {
             throw new IllegalArgumentException("他の患者の予約にはアクセスできません");
         }
 

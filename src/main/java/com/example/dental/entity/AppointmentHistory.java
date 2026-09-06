@@ -12,6 +12,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import com.example.dental.enums.AppointMethod;
@@ -46,8 +48,12 @@ public class AppointmentHistory {
     private Dentist dentist;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "patient_id", nullable = false)
+    @JoinColumn(name = "patient_id")
     private Patient patient;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "token_id")
+    private Token token;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "treatment_id", nullable = false)
@@ -83,4 +89,18 @@ public class AppointmentHistory {
     // アーカイブ日時（いつ履歴に移動したか）
     @Column(name = "archive_at", nullable = false)
     private LocalDateTime archiveAt;
+
+    @PrePersist
+    @PreUpdate
+    private void validatePatientOrToken() {
+        boolean hasPatient = (this.patient != null);
+        boolean hasToken = (this.token != null);
+        
+        if (hasPatient && hasToken) {
+            throw new IllegalStateException("予約履歴には「Patient」と「Token」の両方を設定することはできません。どちらか一方のみ設定してください。");
+        }
+        if (!hasPatient && !hasToken) {
+            throw new IllegalStateException("予約履歴には「Patient」または「Token」のいずれかが必須です。");
+        }
+    }
 }

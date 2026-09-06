@@ -95,6 +95,10 @@ public class AppointmentService {
      * 指定された日付の空き枠を検索します
      */
     public List<LocalTime> getAvailableTimeSlots(DentalClinic clinic, LocalDate date, TreatmentType treatment) {
+        return getAvailableTimeSlots(clinic, date, treatment, null);
+    }
+
+    public List<LocalTime> getAvailableTimeSlots(DentalClinic clinic, LocalDate date, TreatmentType treatment, Long excludeApptId) {
         List<LocalTime> availableSlots = new ArrayList<>();
         
         // 1. チェアと歯科医師を取得（対象メニューを対応可能なものに絞り込む）
@@ -204,6 +208,7 @@ public class AppointmentService {
             // 重複する予約のカウント
             long overlappingCount = dailyAppointments.stream()
                 .filter(app -> app.getStatus() != AppointmentStatus.CANCELLED)
+                .filter(app -> excludeApptId == null || !app.getAppointmentId().equals(excludeApptId))
                 .filter(app -> {
                     LocalTime appStart = app.getStartAt().toLocalTime();
                     LocalTime appEnd = app.getEndAt().toLocalTime();
@@ -212,6 +217,152 @@ public class AppointmentService {
 
             // 予約枠の空き（チェア数・医師数の少ない方が上限）
             if (overlappingCount < totalCapacity) {
+                availableSlots.add(slotStart);
+            }
+
+            current = current.plusMinutes(unitMinutes);
+        }
+
+        return availableSlots;
+    }
+
+    /**
+     * 指定された日付の空き枠を検索します（担当医・チェア指定あり）
+     */
+    public List<LocalTime> getAvailableTimeSlots(DentalClinic clinic, LocalDate date, TreatmentType treatment, Long dentistId, Long chairId) {
+        return getAvailableTimeSlots(clinic, date, treatment, dentistId, chairId, null);
+    }
+
+    public List<LocalTime> getAvailableTimeSlots(DentalClinic clinic, LocalDate date, TreatmentType treatment, Long dentistId, Long chairId, Long excludeApptId) {
+        List<LocalTime> availableSlots = new ArrayList<>();
+        
+        // 1. チェアと歯科医師を取得（対象メニューを対応可能なものに絞り込む）
+        List<DentalChair> chairs = chairTreatmentRepository.findByTreatmentType(treatment).stream()
+                .map(ChairTreatment::getDentalChair)
+                .filter(c -> !c.getIsDeleted() && Boolean.TRUE.equals(c.getStatus()))
+                .filter(c -> chairId == null || c.getChairId().equals(chairId))
+                .toList();
+        List<Dentist> dentists = dentistTreatmentRepository.findByTreatmentType(treatment).stream()
+                .map(DentistTreatment::getDentist)
+                .filter(d -> !d.getIsDeleted() && Boolean.TRUE.equals(d.getStatus()))
+                .filter(d -> dentistId == null || d.getDentistId().equals(dentistId))
+                .toList();
+                
+        if (chairs.isEmpty() || dentists.isEmpty()) {
+            return availableSlots;
+        }
+        
+        // 2. 基本の営業時間と例外カレンダーの取得
+        Optional<BusinessHour> bhOpt = businessHourRepository.findByDentalClinicDentalIdAndDayOfWeek(clinic.getDentalId(), date.getDayOfWeek());
+        List<CalendarException> allExceptions = calendarExceptionRepository.findByDentalClinicAndTargetDateBetween(clinic, date, date);
+        
+        List<CalendarException> clinicExceptions = allExceptions.stream().filter(e -> e.getDentist() == null).toList();
+        List<CalendarException> dentistExceptions = allExceptions.stream().filter(e -> e.getDentist() != null).toList();
+
+        LocalTime openAt = null;
+        LocalTime closeAt = null;
+        LocalTime breakStart = null;
+        LocalTime breakEnd = null;
+        boolean isHoliday = true;
+
+        if (bhOpt.isPresent()) {
+            BusinessHour bh = bhOpt.get();
+            openAt = bh.getOpenAt();
+            closeAt = bh.getCloseAt();
+            breakStart = bh.getBreakStartAt();
+            breakEnd = bh.getBreakEndAt();
+            isHoliday = bh.getRegularHoliday();
+        }
+
+        // 3. 例外カレンダー（全体）の適用
+        boolean hasSpecialWithoutHours = false;
+        for (CalendarException ex : clinicExceptions) {
+            if (ex.getType() == ExceptionType.HOLIDAY) {
+                return availableSlots; // 休診
+            } else if (ex.getType() == ExceptionType.SPECIAL) {
+                isHoliday = false; // 特別診療なので休診を上書き
+                if (ex.getStartAt() != null) {
+                    openAt = ex.getStartAt();
+                } else {
+                    hasSpecialWithoutHours = true;
+                }
+                if (ex.getEndAt() != null) closeAt = ex.getEndAt();
+                if (ex.getBreakStartAt() != null) breakStart = ex.getBreakStartAt();
+                if (ex.getBreakEndAt() != null) breakEnd = ex.getBreakEndAt();
+            }
+        }
+        
+        if (openAt == null && hasSpecialWithoutHours) {
+            List<BusinessHour> allHours = businessHourRepository.findByDentalClinicDentalId(clinic.getDentalId());
+            Optional<BusinessHour> defaultHour = allHours.stream()
+                    .filter(bh -> !bh.getRegularHoliday() && bh.getOpenAt() != null)
+                    .findFirst();
+            if (defaultHour.isPresent()) {
+                openAt = defaultHour.get().getOpenAt();
+                closeAt = defaultHour.get().getCloseAt();
+                breakStart = defaultHour.get().getBreakStartAt();
+                breakEnd = defaultHour.get().getBreakEndAt();
+            }
+        }
+
+        if (isHoliday || openAt == null || closeAt == null) return availableSlots;
+        
+        // 歯科医師の個別休診を考慮してキャパシティを減らす
+        long dentistHolidayCount = dentistExceptions.stream()
+                .filter(ex -> ex.getType() == ExceptionType.HOLIDAY)
+                .map(ex -> ex.getDentist().getDentistId())
+                .filter(id -> dentists.stream().anyMatch(d -> d.getDentistId().equals(id)))
+                .distinct()
+                .count();
+        
+        int availableDentists = Math.max(0, dentists.size() - (int) dentistHolidayCount);
+        if (availableDentists == 0) {
+            return availableSlots;
+        }
+        int totalCapacity = Math.min(chairs.size(), availableDentists);
+
+        // 4. 指定日の既存予約を取得
+        LocalDateTime dayStart = date.atStartOfDay();
+        LocalDateTime dayEnd = date.atTime(LocalTime.MAX);
+        List<Appointment> dailyAppointments = appointmentRepository.findByDentalClinicAndStartAtBetween(clinic, dayStart, dayEnd);
+
+        // 5. 空き枠の計算
+        int unitMinutes = clinic.getReservationTimeUnit() != null ? clinic.getReservationTimeUnit() : 30;
+        int requiredMinutes = treatment.getRequiredMinutes();
+        LocalTime current = openAt;
+
+        while (!current.plusMinutes(requiredMinutes).isAfter(closeAt)) {
+            LocalTime slotStart = current;
+            LocalTime slotEnd = current.plusMinutes(requiredMinutes);
+
+            if (breakStart != null && breakEnd != null) {
+                boolean overlapsBreak = (slotStart.isBefore(breakEnd) && slotEnd.isAfter(breakStart));
+                if (overlapsBreak) {
+                    current = current.plusMinutes(unitMinutes);
+                    continue;
+                }
+            }
+
+            long overlappingCount = dailyAppointments.stream()
+                .filter(app -> app.getStatus() != AppointmentStatus.CANCELLED)
+                .filter(app -> excludeApptId == null || !app.getAppointmentId().equals(excludeApptId))
+                .filter(app -> {
+                    // 特定の医師・チェアを指定した場合、そのリソースの競合のみチェックする
+                    if (dentistId != null && app.getDentist() != null && !app.getDentist().getDentistId().equals(dentistId)) return false;
+                    if (chairId != null && app.getDentalChair() != null && !app.getDentalChair().getChairId().equals(chairId)) return false;
+                    
+                    LocalTime appStart = app.getStartAt().toLocalTime();
+                    LocalTime appEnd = app.getEndAt().toLocalTime();
+                    return appStart.isBefore(slotEnd) && appEnd.isAfter(slotStart);
+                }).count();
+
+            // もし特定の医師やチェアが指定されていた場合、そのリソースのキャパシティは1
+            int slotCapacity = totalCapacity;
+            if (dentistId != null || chairId != null) {
+                slotCapacity = 1; 
+            }
+
+            if (overlappingCount < slotCapacity) {
                 availableSlots.add(slotStart);
             }
 
@@ -305,6 +456,119 @@ public class AppointmentService {
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointment.setUpdatedAt(LocalDateTime.now());
         appointmentRepository.save(appointment);
+    }
+
+    /**
+     * 予約のステータスを変更します
+     */
+    @Transactional
+    public void updateAppointmentStatus(Long appointmentId, AppointmentStatus newStatus, DentalClinic clinic) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new IllegalArgumentException("予約が見つかりません"));
+        
+        if (!appointment.getDentalClinic().getDentalId().equals(clinic.getDentalId())) {
+            throw new IllegalArgumentException("権限がありません");
+        }
+
+        appointment.setStatus(newStatus);
+        appointment.setUpdatedAt(LocalDateTime.now());
+        appointmentRepository.save(appointment);
+    }
+
+    /**
+     * 予約をフル仕様で変更します
+     */
+    @Transactional
+    public Appointment updateAppointmentFull(Long appointmentId, DentalClinic clinic, TreatmentType treatment, 
+                                             LocalDate date, LocalTime time, Long dentistId, Long chairId, 
+                                             AppointMethod method, String patientComment) {
+        
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new IllegalArgumentException("予約が見つかりません"));
+        
+        if (!appointment.getDentalClinic().getDentalId().equals(clinic.getDentalId())) {
+            throw new IllegalArgumentException("権限がありません");
+        }
+
+        // 悲観的ロックを取得して他の予約処理と競合しないようにする
+        dentalClinicRepository.findByIdForUpdate(clinic.getDentalId())
+            .orElseThrow(() -> new IllegalStateException("医院情報が見つかりません"));
+
+        LocalDateTime startAt = LocalDateTime.of(date, time);
+        LocalDateTime endAt = startAt.plusMinutes(treatment.getRequiredMinutes());
+
+        // その時間帯の既存予約を取得（自身を除く）
+        List<Appointment> existingApps = appointmentRepository.findByDentalClinicAndStartAtBetween(clinic, startAt.minusMinutes(1440), startAt.plusMinutes(1440));
+        
+        List<Appointment> overlappingApps = existingApps.stream()
+            .filter(app -> app.getStatus() != AppointmentStatus.CANCELLED)
+            .filter(app -> !app.getAppointmentId().equals(appointmentId))
+            .filter(app -> app.getStartAt().isBefore(endAt) && app.getEndAt().isAfter(startAt))
+            .toList();
+
+        // チェアの決定
+        DentalChair assignedChair = null;
+        if (chairId != null) {
+            assignedChair = dentalChairRepository.findById(chairId)
+                .orElseThrow(() -> new IllegalArgumentException("選択されたチェアが見つかりません"));
+            boolean isChairUsed = overlappingApps.stream().anyMatch(a -> a.getDentalChair().getChairId().equals(chairId));
+            if (isChairUsed) throw new IllegalStateException("選択されたチェアはその時間帯にすでに予約が入っています");
+        } else {
+            List<DentalChair> capableChairs = chairTreatmentRepository.findByTreatmentType(treatment).stream()
+                    .map(ChairTreatment::getDentalChair)
+                    .filter(c -> !c.getIsDeleted() && Boolean.TRUE.equals(c.getStatus()))
+                    .toList();
+            List<Long> usedChairIds = overlappingApps.stream().map(a -> a.getDentalChair().getChairId()).toList();
+            assignedChair = capableChairs.stream()
+                .filter(c -> !usedChairIds.contains(c.getChairId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("利用可能なチェアがありません"));
+        }
+
+        // 担当医の決定
+        Dentist assignedDentist = null;
+        if (dentistId != null) {
+            assignedDentist = dentistRepository.findById(dentistId)
+                .orElseThrow(() -> new IllegalArgumentException("選択された歯科医師が見つかりません"));
+            boolean isDentistUsed = overlappingApps.stream().anyMatch(a -> a.getDentist().getDentistId().equals(dentistId));
+            if (isDentistUsed) throw new IllegalStateException("選択された歯科医師はその時間帯にすでに予約が入っています");
+            
+            List<CalendarException> dailyExceptions = calendarExceptionRepository.findByDentalClinicAndTargetDateBetween(clinic, date, date);
+            boolean isDentistHoliday = dailyExceptions.stream()
+                .anyMatch(e -> e.getType() == ExceptionType.HOLIDAY && e.getDentist() != null && e.getDentist().getDentistId().equals(dentistId));
+            if (isDentistHoliday) throw new IllegalStateException("選択された歯科医師はその日は休診です");
+        } else {
+            List<CalendarException> dailyExceptions = calendarExceptionRepository.findByDentalClinicAndTargetDateBetween(clinic, date, date);
+            List<Long> holidayDentistIds = dailyExceptions.stream()
+                .filter(e -> e.getType() == ExceptionType.HOLIDAY && e.getDentist() != null)
+                .map(e -> e.getDentist().getDentistId())
+                .toList();
+
+            List<Dentist> capableDentists = dentistTreatmentRepository.findByTreatmentType(treatment).stream()
+                    .map(DentistTreatment::getDentist)
+                    .filter(d -> !d.getIsDeleted() && Boolean.TRUE.equals(d.getStatus()))
+                    .toList();
+            List<Long> usedDentistIds = overlappingApps.stream().map(a -> a.getDentist().getDentistId()).toList();
+            
+            assignedDentist = capableDentists.stream()
+                .filter(d -> !usedDentistIds.contains(d.getDentistId()))
+                .filter(d -> !holidayDentistIds.contains(d.getDentistId()))
+                .sorted(Comparator.comparingInt(d -> dentistTreatmentRepository.countByDentist(d)))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("対応可能な歯科医師がいません"));
+        }
+
+        // 予約の更新
+        appointment.setTreatmentType(treatment);
+        appointment.setDentalChair(assignedChair);
+        appointment.setDentist(assignedDentist);
+        appointment.setStartAt(startAt);
+        appointment.setEndAt(endAt);
+        appointment.setAppointMethod(method);
+        appointment.setPatientComment(patientComment);
+        appointment.setUpdatedAt(LocalDateTime.now());
+
+        return appointmentRepository.save(appointment);
     }
 
     /**

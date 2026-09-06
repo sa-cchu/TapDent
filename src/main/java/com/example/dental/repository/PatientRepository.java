@@ -37,4 +37,12 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
 
     // 歯科医院と電話番号で患者を検索（複合重複チェック用）
     Optional<Patient> findByDentalClinicAndTel(com.example.dental.entity.DentalClinic clinic, String tel);
+
+    // 患者管理画面での一覧およびキーワード検索（論理削除を除外）
+    @org.springframework.data.jpa.repository.Query("SELECT p FROM Patient p WHERE p.dentalClinic.dentalId = :dentalId AND p.isDeleted = false " +
+           "AND (:keyword IS NULL OR :keyword = '' OR " +
+           "p.name LIKE %:keyword% OR p.pronunciationGuide LIKE %:keyword% OR " +
+           "p.tel LIKE %:keyword% OR p.patientCode LIKE %:keyword% OR p.email LIKE %:keyword%) " +
+           "ORDER BY p.patientId DESC")
+    List<Patient> searchPatients(@org.springframework.data.repository.query.Param("dentalId") Long dentalId, @org.springframework.data.repository.query.Param("keyword") String keyword);
 }

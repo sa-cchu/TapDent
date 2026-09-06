@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <title>予約管理カレンダー | TapDent</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -51,11 +53,35 @@
         .appointment-block { position: absolute; left: 2px; right: 2px; border-radius: 4px; padding: 4px; font-size: 0.75rem; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; z-index: 10; border-left: 4px solid transparent; }
         .appt-new { background-color: #e0f2fe; border-left-color: #0284c7; color: #0369a1; }
         .appt-revisit { background-color: #fce7f3; border-left-color: #db2777; color: #9d174d; }
+        .appt-attended { background-color: #d1e7dd; border-left-color: #198754; color: #0f5132; }
+        .appt-noshow { background-color: #e2e3e5; border-left-color: #6c757d; color: #41464b; }
         .appt-title { font-weight: 600; margin-bottom: 2px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         .appt-meta { font-size: 0.7rem; opacity: 0.8; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 
         /* Tooltip */
         .custom-tooltip { position: absolute; background: #333; color: #fff; padding: 0.5rem; border-radius: 4px; font-size: 0.8rem; z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 0.2s; white-space: nowrap; }
+
+        /* Modal UI Styles (Patient App Style) */
+        .menu-card { cursor: pointer; transition: all 0.2s; }
+        .menu-card:hover { border-color: #0d6efd; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .menu-input { display: none; }
+        .menu-input:checked + .card { border-color: #0d6efd; background-color: #f0f7ff; border-width: 2px; }
+
+        .time-slot { cursor: pointer; text-align: center; padding: 10px; border: 1px solid #dee2e6; border-radius: 8px; transition: all 0.2s; }
+        .time-slot:hover { border-color: #0d6efd; background-color: #f0f7ff; }
+        .time-input { display: none; }
+        .time-input:checked + .time-slot { background-color: #0d6efd; color: white; border-color: #0d6efd; }
+
+        .modal-calendar-day { cursor: pointer; padding: 10px 0; border-radius: 8px; transition: all 0.2s; position: relative; }
+        .modal-calendar-day:hover:not(.disabled) { background-color: #f0f7ff; }
+        .modal-calendar-day.disabled { cursor: not-allowed; opacity: 0.5; }
+        .modal-calendar-day.selected { background-color: #0d6efd; color: white; }
+        .modal-calendar-day .day-num { font-size: 1.1rem; font-weight: bold; }
+        .modal-calendar-day .status { font-size: 0.9rem; margin-top: 2px; }
+        .modal-calendar-day .status.circle { color: #198754; font-weight: bold; }
+        .modal-calendar-day.selected .status.circle { color: white; }
+        .modal-calendar-day .status.cross { color: #dc3545; font-weight: bold; }
+        .modal-calendar-day.selected .status.cross { color: white; }
     </style>
 </head>
 <body class="d-flex flex-column vh-100 overflow-hidden">
@@ -128,6 +154,230 @@
         </div>
     </div>
 
+    <!-- Add Reservation Modal -->
+    <div class="modal fade" id="addApptModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="addReservationForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title">予約追加</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                        <!-- Step Indicator -->
+                        <div class="d-flex justify-content-between px-4 py-3 bg-light border-bottom text-center small">
+                            <div class="step-indicator text-primary fw-bold" id="stepIndicator1">1. 方法</div>
+                            <div class="step-indicator text-muted" id="stepIndicator2">2. メニュー</div>
+                            <div class="step-indicator text-muted" id="stepIndicator3">3. 日時</div>
+                            <div class="step-indicator text-muted" id="stepIndicator4">4. 患者情報</div>
+                            <div class="step-indicator text-muted" id="stepIndicator5">5. 確認</div>
+                        </div>
+
+                        <!-- Step 1 -->
+                        <div class="wizard-step p-4" id="wizardStep1">
+                            <h6 class="mb-3 fw-bold text-primary">予約方法の選択</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="w-100">
+                                        <input type="radio" name="formAppointMethod" class="menu-input" value="PHONE" required>
+                                        <div class="card menu-card h-100 text-center py-4">
+                                            <div class="card-body">
+                                                <i class="bi bi-telephone-fill fs-1 text-primary mb-2"></i>
+                                                <h5 class="card-title fw-bold">電話予約</h5>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="w-100">
+                                        <input type="radio" name="formAppointMethod" class="menu-input" value="RECEPTION" required>
+                                        <div class="card menu-card h-100 text-center py-4">
+                                            <div class="card-body">
+                                                <i class="bi bi-person-video2 fs-1 text-primary mb-2"></i>
+                                                <h5 class="card-title fw-bold">窓口予約</h5>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="wizard-step p-4 d-none" id="wizardStep2">
+                            <h6 class="mb-3 fw-bold text-primary">診療メニューの選択</h6>
+                            
+                            <div id="treatmentsContainer">
+                                <!-- Generated by JS -->
+                            </div>
+
+                            <div class="row g-3 mt-4 border-top pt-3">
+                                <h6 class="mb-2 fw-bold text-secondary">担当の指定（任意）</h6>
+                                <div class="col-md-6">
+                                    <label class="form-label">担当医</label>
+                                    <select class="form-select" id="formDentistId">
+                                        <option value="">自動振り分け（指定なし）</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">チェア</label>
+                                    <select class="form-select" id="formChairId">
+                                        <option value="">自動振り分け（指定なし）</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="wizard-step p-4 d-none" id="wizardStep3">
+                            <h6 class="mb-3 fw-bold text-primary">日時の選択</h6>
+                            <div class="alert alert-info py-2 mb-4">
+                                <strong>選択中メニュー:</strong> <span id="selectedTreatmentNameDisplay"></span><br>
+                                <strong>担当医:</strong> <span id="selectedDentistNameDisplay"></span> / <strong>チェア:</strong> <span id="selectedChairNameDisplay"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">日付を選択</label>
+                                <div class="border rounded p-3 bg-white shadow-sm">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnModalPrevMonth">&lt; 前月</button>
+                                        <h5 class="mb-0 fw-bold" id="modalCalendarMonthLabel"></h5>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnModalNextMonth">次月 &gt;</button>
+                                    </div>
+                                    <div class="row g-0 text-center fw-bold text-muted mb-2">
+                                        <div class="col text-danger">日</div>
+                                        <div class="col">月</div>
+                                        <div class="col">火</div>
+                                        <div class="col">水</div>
+                                        <div class="col">木</div>
+                                        <div class="col">金</div>
+                                        <div class="col text-primary">土</div>
+                                    </div>
+                                    <div id="modalCalendarGrid">
+                                        <!-- JS generates calendar days -->
+                                    </div>
+                                </div>
+                                <input type="hidden" id="formReservationDate" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">時間を選択</label>
+                                <div id="loadingModalSlots" class="text-center py-4 d-none">
+                                    <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                                </div>
+                                <div id="noModalSlots" class="alert alert-warning d-none">
+                                    選択した日付には予約可能な空き枠がありません。
+                                </div>
+                                <div class="row g-2" id="modalTimeSlotsContainer"></div>
+                                <input type="hidden" id="formReservationTime" required>
+                            </div>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div class="wizard-step p-4 d-none" id="wizardStep4">
+                            <h6 class="mb-3 fw-bold text-primary">患者情報・メモの入力</h6>
+                            
+                            <div id="patientTypeToggle" class="mb-3 d-none">
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="patientTypeRadio" id="radioExisting" value="RE_VISIT" checked>
+                                    <label class="btn btn-outline-primary" for="radioExisting">既存患者</label>
+                                    <input type="radio" class="btn-check" name="patientTypeRadio" id="radioNew" value="FIRST_VISIT">
+                                    <label class="btn btn-outline-primary" for="radioNew">新規患者</label>
+                                </div>
+                            </div>
+
+                            <!-- 共通の患者情報入力欄 -->
+                            <div id="patientInfoSection">
+                                <input type="hidden" id="formPatientId">
+                                
+                                <!-- アカウント連携状態 -->
+                                <div class="mb-3 d-none d-flex justify-content-between align-items-end bg-light p-3 rounded border" id="accountStatusContainer">
+                                    <div>
+                                        <label class="form-label d-block mb-1 text-secondary small fw-bold">アカウント連携状態</label>
+                                        <span class="badge bg-secondary fs-6" id="accountStatusBadge">未登録</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnClearPatient">入力クリア</button>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">フリガナ <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="formPatientNameKana" required>
+                                        <button class="btn btn-outline-secondary patient-search-btn d-none" type="button" data-search-target="kana">検索</button>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">名前</label>
+                                    <input type="text" class="form-control" id="formPatientName">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">電話番号 <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <input type="tel" class="form-control" id="formPatientTel" required>
+                                        <button class="btn btn-outline-secondary patient-search-btn d-none" type="button" data-search-target="tel">検索</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">コメント (任意)</label>
+                                <textarea class="form-control" id="formPatientComment" rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Step 5 -->
+                        <div class="wizard-step p-4 d-none" id="wizardStep5">
+                            <h6 class="mb-3 fw-bold text-primary">登録内容の確認</h6>
+                            <table class="table table-bordered bg-white small">
+                                <tbody>
+                                    <tr><th style="width: 30%;" class="bg-light">予約方法</th><td id="confirmMethod"></td></tr>
+                                    <tr><th class="bg-light">診療メニュー</th><td id="confirmTreatment"></td></tr>
+                                    <tr><th class="bg-light">担当医</th><td id="confirmDentist"></td></tr>
+                                    <tr><th class="bg-light">チェア</th><td id="confirmChair"></td></tr>
+                                    <tr><th class="bg-light">日時</th><td id="confirmDateTime"></td></tr>
+                                    <tr><th class="bg-light">区分</th><td id="confirmVisitType"></td></tr>
+                                    <tr><th class="bg-light">患者</th><td id="confirmPatient"></td></tr>
+                                    <tr><th class="bg-light">コメント</th><td id="confirmComment"></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="btnCancel">キャンセル</button>
+                        <button type="button" class="btn btn-secondary d-none" id="btnPrevStep">戻る</button>
+                        <button type="button" class="btn btn-primary" id="btnNextStep">次へ <i class="bi bi-chevron-right"></i></button>
+                        <button type="submit" class="btn btn-success d-none" id="btnSubmitReservation"><i class="bi bi-check-circle me-1"></i>予約を確定する</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patient Search Result Modal -->
+    <div class="modal fade" id="patientSearchResultModal" tabindex="-1" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">患者検索結果</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="list-group list-group-flush" id="patientSearchResultList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Toast Notification -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
+        <div id="successToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body fw-bold">
+                    <i class="bi bi-check-circle-fill me-2"></i>予約完了しました
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
     <!-- Appointment Detail Modal -->
     <div class="modal fade" id="apptModal" tabindex="-1">
         <div class="modal-dialog">
@@ -137,6 +387,27 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="apptModalBody"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reservation Search Modal -->
+    <div class="modal fade" id="reservationSearchModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">予約検索</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="reservationSearchInput" placeholder="名前、カナ、電話番号、診察券番号で検索">
+                        <button class="btn btn-primary" id="btnRunReservationSearch">検索</button>
+                    </div>
+                    <div id="reservationSearchResultList" class="list-group">
+                        <div class="text-muted text-center py-3">キーワードを入力して検索してください</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -255,6 +526,97 @@
             chairFilter.addEventListener('change', () => {
                 renderCurrentView(); // Only re-render, don't re-fetch
             });
+
+            const reservationSearchModal = new bootstrap.Modal(document.getElementById('reservationSearchModal'));
+            
+            document.getElementById('btnSearch').addEventListener('click', () => {
+                document.getElementById('reservationSearchInput').value = '';
+                document.getElementById('reservationSearchResultList').innerHTML = '<div class="text-muted text-center py-3">キーワードを入力して検索してください</div>';
+                reservationSearchModal.show();
+            });
+
+            const searchInput = document.getElementById('reservationSearchInput');
+            const btnRunSearch = document.getElementById('btnRunReservationSearch');
+
+            const executeSearch = async () => {
+                const q = searchInput.value.trim();
+                if (!q) return;
+
+                const list = document.getElementById('reservationSearchResultList');
+                list.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary" role="status"></div></div>';
+
+                try {
+                    const res = await fetch('/clinic/api/reservations/search-appointments?q=' + encodeURIComponent(q));
+                    const data = await res.json();
+
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-muted text-center py-3">該当する予約は見つかりませんでした</div>';
+                        return;
+                    }
+
+                    let html = '';
+                    data.forEach(a => {
+                        let dt;
+                        if (Array.isArray(a.startAt)) {
+                            dt = new Date(a.startAt[0], a.startAt[1]-1, a.startAt[2], a.startAt[3], a.startAt[4]||0);
+                        } else {
+                            dt = new Date(a.startAt);
+                        }
+                        const dateStr = `${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日 ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+                        
+                        let statusColor = 'secondary';
+                        let statusText = 'キャンセル';
+                        if (a.status === 'RESERVED') { statusColor = 'primary'; statusText = '予約確定'; }
+                        else if (a.status === 'ATTENDED') { statusColor = 'success'; statusText = '来院済み'; }
+                        else if (a.status === 'NOSHOW') { statusColor = 'secondary'; statusText = '無断キャンセル'; }
+
+                        const encoded = encodeURIComponent(JSON.stringify(a));
+                        
+                        html += `
+                            <button type="button" class="list-group-item list-group-item-action p-3" onclick="jumpToAppointment('${encoded}')">
+                                <div class="d-flex w-100 justify-content-between align-items-center mb-2">
+                                    <span class="fs-6 fw-bold text-dark">${dateStr}</span>
+                                    <span class="badge bg-${statusColor}">${statusText}</span>
+                                </div>
+                                <div class="mb-1">
+                                    <span class="fw-bold">${a.patientName}</span> <span class="small text-muted">(${a.patientNameKana || ''})</span>
+                                </div>
+                                <div class="small text-secondary d-flex flex-wrap gap-2">
+                                    <span><i class="bi bi-person-badge"></i> ${a.patientCode || 'ゲスト'}</span>
+                                    <span><i class="bi bi-telephone"></i> ${a.patientTel || ''}</span>
+                                    <span><i class="bi bi-file-medical"></i> ${a.treatmentName || ''}</span>
+                                </div>
+                            </button>
+                        `;
+                    });
+                    list.innerHTML = html;
+                } catch (e) {
+                    list.innerHTML = '<div class="text-danger text-center py-3">検索中にエラーが発生しました</div>';
+                }
+            };
+
+            btnRunSearch.addEventListener('click', executeSearch);
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') executeSearch();
+            });
+
+            window.jumpToAppointment = function(encoded) {
+                const a = JSON.parse(decodeURIComponent(encoded));
+                if (a.startAt) {
+                    if (Array.isArray(a.startAt)) {
+                        currentDate = new Date(a.startAt[0], a.startAt[1]-1, a.startAt[2], a.startAt[3], a.startAt[4]||0);
+                    } else {
+                        currentDate = new Date(a.startAt);
+                    }
+                    
+                    loadView().then(() => {
+                        reservationSearchModal.hide();
+                        setTimeout(() => {
+                            window.showApptModal(encoded);
+                        }, 500); // Bootstrapのアニメーション完了を待つ
+                    });
+                }
+            };
         }
 
         async function loadView() {
@@ -382,6 +744,141 @@
             }
             return false;
         }
+
+        // --- Modal & API Functions ---
+        window.showApptModal = function(encodedJson) {
+            const a = JSON.parse(decodeURIComponent(encodedJson));
+            
+            let methodLabel = a.appointMethod;
+            if (a.appointMethod === 'ONLINE') methodLabel = 'オンライン予約';
+            else if (a.appointMethod === 'PHONE') methodLabel = '電話';
+            else if (a.appointMethod === 'RECEPTION') methodLabel = '窓口';
+            
+            let statusLabel = a.status;
+            if (a.status === 'RESERVED') statusLabel = '予約確定';
+            else if (a.status === 'ATTENDED') statusLabel = '来院済み';
+            else if (a.status === 'CANCELLED') statusLabel = 'キャンセル';
+            else if (a.status === 'NOSHOW') statusLabel = '無断キャンセル';
+
+            // 日時文字列の安全な整形
+            const formatDt = (dt) => {
+                if (Array.isArray(dt)) {
+                    const [y, m, d, hh = 0, mm = 0] = dt;
+                    return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')} ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+                }
+                return String(dt).replace('T', ' ');
+            };
+
+            const startText = formatDt(a.startAt);
+            const endText = formatDt(a.endAt).split(' ')[1] || '';
+
+            let html = `
+                <table class="table table-bordered mb-0">
+                    <tr><th>ステータス</th>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <select class="form-select form-select-sm" id="modalStatusSelect" style="width: auto;">
+                                    <option value="RESERVED" ${a.status === 'RESERVED' ? 'selected' : ''}>予約確定</option>
+                                    <option value="ATTENDED" ${a.status === 'ATTENDED' ? 'selected' : ''}>来院済み</option>
+                                    <option value="NOSHOW" ${a.status === 'NOSHOW' ? 'selected' : ''}>無断キャンセル</option>
+                                </select>
+                                <button class="btn btn-outline-primary btn-sm" onclick="window.updateApptStatus(${a.appointmentId})">更新</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr><th>区分</th><td>${a.visitType === 'FIRST_VISIT' ? '初診' : '再診'}</td></tr>
+                    <tr><th>診察券番号</th><td>${a.patientCode || '未発行'}</td></tr>
+                    <tr><th>フリガナ</th><td>${a.patientNameKana || ''}</td></tr>
+                    <tr><th>患者名</th><td>${a.patientName || ''}</td></tr>
+                    <tr><th>予約方法</th><td>${methodLabel}</td></tr>
+                    <tr><th>メニュー</th><td>${a.treatmentName || ''}</td></tr>
+                    <tr><th>担当医</th><td>${a.dentistName || ''}</td></tr>
+                    <tr><th>チェア</th><td>${a.chairName || ''}</td></tr>
+                    <tr><th>日時</th><td>${startText} ～ ${endText}</td></tr>
+                </table>
+                <div class="mt-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <button class="btn btn-outline-secondary btn-sm me-2" onclick="window.openEditApptModal('${encodedJson}')">
+                            <i class="bi bi-pencil-square"></i> 予約内容を変更
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="window.cancelAppt(${a.appointmentId})">
+                            <i class="bi bi-trash3"></i> キャンセル
+                        </button>
+                    </div>
+                    ${a.patientId ? `<button class="btn btn-primary btn-sm" onclick="window.location.href='/clinic/patients/${a.patientId}'">患者詳細へ</button>` : '<div></div>'}
+                </div>
+            `;
+            document.getElementById('apptModalBody').innerHTML = html;
+            apptModal.show();
+        };
+
+        window.cancelAppt = async function(appointmentId) {
+            if (!confirm('本当にこの予約をキャンセルしますか？')) {
+                return;
+            }
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+            try {
+                const res = await fetch('/clinic/api/reservations/' + appointmentId + '/status', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [csrfHeader]: csrfToken
+                    },
+                    body: JSON.stringify({ status: 'CANCELLED' })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    apptModal.hide();
+                    loadView(); // refresh calendar
+                    const toastEl = document.getElementById('successToast');
+                    const toastBody = toastEl.querySelector('.toast-body');
+                    if (toastBody) toastBody.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>予約をキャンセルしました';
+                    const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+                    toast.show();
+                } else {
+                    alert('更新エラー: ' + data.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('通信エラーが発生しました。');
+            }
+        };
+
+        window.updateApptStatus = async function(appointmentId) {
+            const status = document.getElementById('modalStatusSelect').value;
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+            try {
+                const res = await fetch('/clinic/api/reservations/' + appointmentId + '/status', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [csrfHeader]: csrfToken
+                    },
+                    body: JSON.stringify({ status: status })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    apptModal.hide();
+                    loadView(); // refresh calendar
+                    const toastEl = document.getElementById('successToast');
+                    const toastBody = toastEl.querySelector('.toast-body');
+                    if (toastBody) toastBody.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>ステータスを更新しました';
+                    const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+                    toast.show();
+                } else {
+                    alert('更新エラー: ' + data.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('通信エラーが発生しました。');
+            }
+        };
 
         // --- View Renderers ---
         function renderMonthView() {
@@ -560,45 +1057,6 @@
             }
             html += '</div>';
 
-            window.showApptModal = function(encodedJson) {
-                const a = JSON.parse(decodeURIComponent(encodedJson));
-                
-                let methodLabel = a.appointMethod;
-                if (a.appointMethod === 'ONLINE') methodLabel = 'オンライン予約';
-                else if (a.appointMethod === 'PHONE') methodLabel = '電話';
-                else if (a.appointMethod === 'RECEPTION') methodLabel = '窓口';
-
-                // 日時文字列の安全な整形
-                const formatDt = (dt) => {
-                    if (Array.isArray(dt)) {
-                        const [y, m, d, hh = 0, mm = 0] = dt;
-                        return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')} ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
-                    }
-                    return String(dt).replace('T', ' ');
-                };
-
-                const startText = formatDt(a.startAt);
-                const endText = formatDt(a.endAt).split(' ')[1] || '';
-
-                let html = `
-                    <table class="table table-bordered mb-0">
-                        <tr><th>区分</th><td>${a.visitType === 'FIRST_VISIT' ? '初診' : '再診'}</td></tr>
-                        <tr><th>診察券番号</th><td>${a.patientCode || '未発行'}</td></tr>
-                        <tr><th>フリガナ</th><td>${a.patientNameKana || ''}</td></tr>
-                        <tr><th>患者名</th><td>${a.patientName || ''}</td></tr>
-                        <tr><th>予約方法</th><td>${methodLabel}</td></tr>
-                        <tr><th>メニュー</th><td>${a.treatmentName || ''}</td></tr>
-                        <tr><th>担当医</th><td>${a.dentistName || ''}</td></tr>
-                        <tr><th>チェア</th><td>${a.chairName || ''}</td></tr>
-                        <tr><th>日時</th><td>${startText} ～ ${endText}</td></tr>
-                    </table>
-                    <div class="mt-3 text-end">
-                        <button class="btn btn-primary btn-sm">患者詳細へ</button>
-                    </div>
-                `;
-                document.getElementById('apptModalBody').innerHTML = html;
-                apptModal.show();
-            };
 
             // Chair columns
             displayChairs.forEach(chair => {
@@ -642,7 +1100,9 @@
                     const top = (startMinutes / 60) * pixelPerHour;
                     const height = (durationMinutes / 60) * pixelPerHour;
                     
-                    const colorClass = a.visitType === 'FIRST_VISIT' ? 'appt-new' : 'appt-revisit';
+                    let colorClass = a.visitType === 'FIRST_VISIT' ? 'appt-new' : 'appt-revisit';
+                    if (a.status === 'ATTENDED') colorClass = 'appt-attended';
+                    if (a.status === 'NOSHOW') colorClass = 'appt-noshow';
                     const encodedAppt = encodeURIComponent(JSON.stringify(a));
                     
                     const visitTypeStr = a.visitType === 'FIRST_VISIT' ? '初診' : '再診';
@@ -660,6 +1120,692 @@
             
             html += '</div>';
             viewContainer.innerHTML = html;
+        }
+
+
+        // Add Reservation Modal Logic
+        const addApptModal = new bootstrap.Modal(document.getElementById('addApptModal'));
+        let treatmentsData = [];
+        let currentStep = 1;
+        const totalSteps = 5;
+        
+        const modalState = {
+            currentViewYear: new Date().getFullYear(),
+            currentViewMonth: new Date().getMonth() + 1
+        };
+
+        document.getElementById('btnModalPrevMonth').addEventListener('click', () => {
+            modalState.currentViewMonth--;
+            if (modalState.currentViewMonth < 1) {
+                modalState.currentViewMonth = 12;
+                modalState.currentViewYear--;
+            }
+            renderModalCalendar();
+        });
+
+        document.getElementById('btnModalNextMonth').addEventListener('click', () => {
+            modalState.currentViewMonth++;
+            if (modalState.currentViewMonth > 12) {
+                modalState.currentViewMonth = 1;
+                modalState.currentViewYear++;
+            }
+            renderModalCalendar();
+        });
+
+        async function renderModalCalendar() {
+            const treatSel = document.querySelector('input[name="formTreatmentId"]:checked');
+            if (!treatSel) return;
+            const treatmentId = treatSel.value;
+            const dentistId = document.getElementById('formDentistId').value;
+            const chairId = document.getElementById('formChairId').value;
+            
+            const year = modalState.currentViewYear;
+            const month = modalState.currentViewMonth;
+            document.getElementById('modalCalendarMonthLabel').innerText = `${year}年 ${month}月`;
+            
+            let query = `?year=${year}&month=${month}&treatmentId=${treatmentId}`;
+            if (dentistId) query += `&dentistId=${dentistId}`;
+            if (chairId) query += `&chairId=${chairId}`;
+
+            const res = await fetch('/clinic/api/reservations/available-dates' + query);
+            const statusMap = await res.json();
+            
+            const firstDay = new Date(year, month - 1, 1);
+            const lastDay = new Date(year, month, 0);
+            
+            const grid = document.getElementById('modalCalendarGrid');
+            let html = '';
+            
+            let curr = new Date(firstDay);
+            curr.setDate(curr.getDate() - curr.getDay());
+            
+            while (curr <= lastDay || curr.getDay() !== 0) {
+                if (curr.getDay() === 0) html += '<div class="row g-0">';
+                
+                const isCurrentMonth = curr.getMonth() === month - 1;
+                const dateStr = toLocalISOString(curr);
+                const status = statusMap[dateStr] || '-';
+                
+                let statusHtml = '<div class="status text-muted">-</div>';
+                let classes = 'col modal-calendar-day text-center';
+                if (!isCurrentMonth) classes += ' disabled';
+                else if (status === '○') statusHtml = '<div class="status circle">○</div>';
+                else if (status === '×') { statusHtml = '<div class="status cross">×</div>'; classes += ' disabled'; }
+                
+                if (document.getElementById('formReservationDate').value === dateStr) {
+                    classes += ' selected';
+                }
+                
+                html += `
+                <div class="${classes}" data-date="${dateStr}" ${isCurrentMonth && status === '○' ? 'onclick="selectModalDate(\''+dateStr+'\')"' : ''}>
+                    <div class="day-num" style="color: ${!isCurrentMonth ? '#ccc' : (curr.getDay()===0 ? 'red' : curr.getDay()===6 ? 'blue' : 'inherit')}">${curr.getDate()}</div>
+                    ${statusHtml}
+                </div>`;
+                
+                if (curr.getDay() === 6) html += '</div>';
+                curr.setDate(curr.getDate() + 1);
+            }
+            grid.innerHTML = html;
+        }
+
+        function selectModalDate(dateStr) {
+            document.getElementById('formReservationDate').value = dateStr;
+            document.querySelectorAll('.modal-calendar-day').forEach(el => el.classList.remove('selected'));
+            const selectedEl = document.querySelector(`.modal-calendar-day[data-date="${dateStr}"]`);
+            if (selectedEl) selectedEl.classList.add('selected');
+            fetchModalSlots(dateStr);
+        }
+
+        async function fetchModalSlots(dateStr) {
+            const treatSel = document.querySelector('input[name="formTreatmentId"]:checked');
+            if (!treatSel) return;
+            const treatmentId = treatSel.value;
+            const dentistId = document.getElementById('formDentistId').value;
+            const chairId = document.getElementById('formChairId').value;
+
+            document.getElementById('loadingModalSlots').classList.remove('d-none');
+            document.getElementById('noModalSlots').classList.add('d-none');
+            document.getElementById('modalTimeSlotsContainer').innerHTML = '';
+            
+            let query = `?date=${dateStr}&treatmentId=${treatmentId}`;
+            if (dentistId) query += `&dentistId=${dentistId}`;
+            if (chairId) query += `&chairId=${chairId}`;
+
+            try {
+                const res = await fetch('/clinic/api/reservations/available-slots' + query);
+                const slots = await res.json();
+                
+                document.getElementById('loadingModalSlots').classList.add('d-none');
+                const container = document.getElementById('modalTimeSlotsContainer');
+                
+                if (slots.length === 0) {
+                    document.getElementById('noModalSlots').classList.remove('d-none');
+                    return;
+                }
+                
+                let html = '';
+                slots.forEach((timeStr, index) => {
+                    const timeDisp = timeStr.substring(0, 5);
+                    html += `
+                    <div class="col-4 col-sm-3 mb-2">
+                        <label class="w-100">
+                            <input type="radio" name="formTimeSlot" class="time-input" value="${timeDisp}" onchange="selectModalTime('${timeDisp}')">
+                            <div class="time-slot">${timeDisp}</div>
+                        </label>
+                    </div>`;
+                });
+                container.innerHTML = html;
+                
+                // Select previous time if it's available
+                const prevTime = document.getElementById('formReservationTime').value;
+                if (prevTime) {
+                    const matched = document.querySelector(`input[name="formTimeSlot"][value="${prevTime}"]`);
+                    if (matched) matched.checked = true;
+                }
+            } catch (e) {
+                document.getElementById('loadingModalSlots').classList.add('d-none');
+                alert('エラーが発生しました');
+            }
+        }
+
+        function selectModalTime(timeStr) {
+            document.getElementById('formReservationTime').value = timeStr;
+            updateEndTime();
+        }
+
+        function updateEndTime() {
+            const timeVal = document.getElementById('formReservationTime').value;
+            const treatSelId = document.querySelector('input[name="formTreatmentId"]:checked');
+            const treatmentId = treatSelId ? treatSelId.value : null;
+            if (timeVal && treatmentId) {
+                const tr = treatmentsData.find(t => t.treatmentId == treatmentId);
+                if (tr) {
+                    const [h, m] = timeVal.split(':').map(Number);
+                    const endDt = new Date();
+                    endDt.setHours(h, m, 0, 0);
+                    endDt.setMinutes(endDt.getMinutes() + tr.requiredMinutes);
+                    document.getElementById('formEndTimeDisplay').innerText = 
+                        `${String(endDt.getHours()).padStart(2, '0')}:${String(endDt.getMinutes()).padStart(2, '0')}`;
+                    return;
+                }
+            }
+            document.getElementById('formEndTimeDisplay').innerText = '--:--';
+        }
+
+        function showStep(step) {
+            // Hide all steps
+            for (let i = 1; i <= totalSteps; i++) {
+                document.getElementById(`wizardStep${i}`).classList.add('d-none');
+                document.getElementById(`stepIndicator${i}`).classList.remove('text-primary', 'fw-bold');
+                document.getElementById(`stepIndicator${i}`).classList.add('text-muted');
+            }
+            
+            // Show current step
+            document.getElementById(`wizardStep${step}`).classList.remove('d-none');
+            document.getElementById(`stepIndicator${step}`).classList.remove('text-muted');
+            document.getElementById(`stepIndicator${step}`).classList.add('text-primary', 'fw-bold');
+
+            // Handle Buttons
+            const btnPrev = document.getElementById('btnPrevStep');
+            const btnNext = document.getElementById('btnNextStep');
+            const btnSubmit = document.getElementById('btnSubmitReservation');
+            
+            if (step === 1) {
+                btnPrev.classList.add('d-none');
+            } else {
+                btnPrev.classList.remove('d-none');
+            }
+            
+            if (step === totalSteps) {
+                btnNext.classList.add('d-none');
+                btnSubmit.classList.remove('d-none');
+                prepareConfirmStep();
+            } else {
+                btnNext.classList.remove('d-none');
+                btnSubmit.classList.add('d-none');
+            }
+        }
+        
+        function prepareConfirmStep() {
+            // Retrieve values
+            const methodSel = document.querySelector('input[name="formAppointMethod"]:checked');
+            document.getElementById('confirmMethod').innerText = methodSel && methodSel.value === 'PHONE' ? '電話' : '窓口';
+            
+            const treatSelId = document.querySelector('input[name="formTreatmentId"]:checked');
+            const treatSel = treatSelId ? treatSelId.value : '';
+            const trInfo = treatmentsData.find(t => t.treatmentId == treatSel);
+            document.getElementById('confirmTreatment').innerText = trInfo ? trInfo.treatmentName : '';
+            
+            const dentSel = document.getElementById('formDentistId');
+            document.getElementById('confirmDentist').innerText = dentSel.options[dentSel.selectedIndex].text;
+            
+            const chairSel = document.getElementById('formChairId');
+            document.getElementById('confirmChair').innerText = chairSel.options[chairSel.selectedIndex].text;
+            
+            const dateVal = document.getElementById('formReservationDate').value;
+            const timeVal = document.getElementById('formReservationTime').value;
+            let endTimeVal = '--:--';
+            if (timeVal && trInfo) {
+                const [h, m] = timeVal.split(':').map(Number);
+                const endDt = new Date();
+                endDt.setHours(h, m, 0, 0);
+                endDt.setMinutes(endDt.getMinutes() + trInfo.requiredMinutes);
+                endTimeVal = `${String(endDt.getHours()).padStart(2, '0')}:${String(endDt.getMinutes()).padStart(2, '0')}`;
+            }
+            document.getElementById('confirmDateTime').innerText = `${dateVal} ${timeVal} 〜 ${endTimeVal}`;
+            
+            let vType = trInfo ? trInfo.targetPatientType : 'FIRST_VISIT';
+            document.getElementById('confirmVisitType').innerText = vType === 'FIRST_VISIT' ? '新患' : '再診';
+            
+            const nName = document.getElementById('formPatientName').value;
+            const nKana = document.getElementById('formPatientNameKana').value;
+            const nTel = document.getElementById('formPatientTel').value;
+            let patientText = `${nName} (${nKana}) / ${nTel}`;
+            
+            if (vType === 'EXISTING') {
+                const pId = document.getElementById('formPatientId').value;
+                if (pId) {
+                    patientText = `[アカウント連携済み] ` + patientText;
+                } else {
+                    patientText = `[アカウント未登録] ` + patientText;
+                }
+            }
+            document.getElementById('confirmPatient').innerText = patientText;
+            
+            document.getElementById('confirmComment').innerText = document.getElementById('formPatientComment').value;
+        }
+
+        function validateStep(step) {
+            if (step === 2) {
+                const treatmentChecked = document.querySelector('input[name="formTreatmentId"]:checked');
+                if (!treatmentChecked) {
+                    alert('診療メニューを選択してください。');
+                    return false;
+                }
+                return true;
+            } else if (step === 3) {
+                const dateVal = document.getElementById('formReservationDate').value;
+                const timeVal = document.getElementById('formReservationTime').value;
+                if (!dateVal) {
+                    alert('日付を選択してください。');
+                    return false;
+                }
+                if (!timeVal) {
+                    alert('時間を選択してください。');
+                    return false;
+                }
+                return true;
+            }
+
+            const stepContainer = document.getElementById(`wizardStep${step}`);
+            const inputs = Array.from(stepContainer.querySelectorAll('input[required]:not([type="hidden"]), select[required]:not([type="hidden"])'));
+            for (let input of inputs) {
+                // If it's conditionally hidden via parent d-none, we might need to skip it
+                if (input.closest('.d-none')) {
+                    continue;
+                }
+                if (!input.checkValidity()) {
+                    input.reportValidity();
+                    return false;
+                }
+            }
+            return true;
+        }
+        document.getElementById('btnNextStep').addEventListener('click', () => {
+            if (validateStep(currentStep)) {
+                if (currentStep === 2) {
+                    const treatSelId = document.querySelector('input[name="formTreatmentId"]:checked').value;
+                    const trInfo = treatmentsData.find(t => t.treatmentId == treatSelId);
+                    const vType = trInfo ? trInfo.targetPatientType : 'FIRST_VISIT';
+                    setupStep4(vType);
+                    
+                    document.getElementById('selectedTreatmentNameDisplay').innerText = trInfo ? trInfo.treatmentName : '';
+                    const dSel = document.getElementById('formDentistId');
+                    document.getElementById('selectedDentistNameDisplay').innerText = dSel.options[dSel.selectedIndex].text;
+                    const cSel = document.getElementById('formChairId');
+                    document.getElementById('selectedChairNameDisplay').innerText = cSel.options[cSel.selectedIndex].text;
+                    
+                    renderModalCalendar();
+                    const dateVal = document.getElementById('formReservationDate').value;
+                    if (dateVal) {
+                        fetchModalSlots(dateVal);
+                    } else {
+                        document.getElementById('modalTimeSlotsContainer').innerHTML = '';
+                    }
+                }
+                currentStep++;
+                showStep(currentStep);
+            }
+        });
+
+        document.getElementById('btnPrevStep').addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        });
+
+        function setupStep4(vType) {
+            const searchBtns = document.querySelectorAll('.patient-search-btn');
+            const statusContainer = document.getElementById('accountStatusContainer');
+            const statusBadge = document.getElementById('accountStatusBadge');
+
+            if (vType === 'FIRST_VISIT') {
+                searchBtns.forEach(btn => btn.classList.add('d-none'));
+                document.getElementById('formPatientId').value = '';
+                if (statusContainer) statusContainer.classList.add('d-none');
+            } else if (vType === 'EXISTING') {
+                searchBtns.forEach(btn => btn.classList.remove('d-none'));
+                if (statusContainer) {
+                    statusContainer.classList.remove('d-none');
+                    if (!document.getElementById('formPatientId').value) {
+                        statusBadge.className = 'badge bg-secondary fs-6';
+                        statusBadge.innerText = '未登録';
+                    }
+                }
+            }
+        }
+
+        document.querySelectorAll('input[name="patientTypeRadio"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const exSec = document.getElementById('existingPatientSection');
+                const newSec = document.getElementById('newPatientSection');
+                const pSel = document.getElementById('patientSelect');
+                const nKana = document.getElementById('formPatientNameKana');
+                const nTel = document.getElementById('formPatientTel');
+                
+                if (e.target.value === 'FIRST_VISIT') {
+                    exSec.classList.add('d-none');
+                    newSec.classList.remove('d-none');
+                    pSel.removeAttribute('required');
+                    nKana.setAttribute('required', 'required');
+                    nTel.setAttribute('required', 'required');
+                } else {
+                    exSec.classList.remove('d-none');
+                    newSec.classList.add('d-none');
+                    pSel.setAttribute('required', 'required');
+                    nKana.removeAttribute('required');
+                    nTel.removeAttribute('required');
+                }
+            });
+        });
+
+        async function initApptWizard() {
+            // Reset state
+            currentStep = 1;
+            document.getElementById('addReservationForm').reset();
+            document.getElementById('formPatientId').value = '';
+            const badge = document.getElementById('accountStatusBadge');
+            if (badge) {
+                badge.className = 'badge bg-secondary fs-6';
+                badge.innerText = '未登録';
+            }
+            document.querySelectorAll('.menu-input').forEach(r => r.checked = false);
+            
+            const res = await fetch('/clinic/api/reservations/form-data');
+            const data = await res.json();
+            
+            treatmentsData = data.treatments;
+            
+            let htmlFirst = '';
+            let htmlRe = '';
+            
+            data.treatments.forEach(t => {
+                const card = `
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <label class="w-100 h-100">
+                        <input type="radio" name="formTreatmentId" class="menu-input" value="${t.treatmentId}" required>
+                        <div class="card menu-card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-primary fw-bold">${t.treatmentName}</h6>
+                                <small class="text-secondary">所要目安: ${t.requiredMinutes}分</small>
+                            </div>
+                        </div>
+                    </label>
+                </div>`;
+                
+                if (t.targetPatientType === 'FIRST_VISIT') htmlFirst += card;
+                else if (t.targetPatientType === 'EXISTING') htmlRe += card;
+            });
+            
+            document.getElementById('treatmentsContainer').innerHTML = `
+                <div class="mb-4">
+                    <h6 class="fw-bold border-bottom pb-2">初診専用メニュー</h6>
+                    <div class="row g-2">${htmlFirst || '<p class="text-muted small">該当するメニューがありません</p>'}</div>
+                </div>
+                <div class="mb-4">
+                    <h6 class="fw-bold border-bottom pb-2">再診専用メニュー</h6>
+                    <div class="row g-2">${htmlRe || '<p class="text-muted small">該当するメニューがありません</p>'}</div>
+                </div>
+            `;
+            
+            const formDentistId = document.getElementById('formDentistId');
+            formDentistId.innerHTML = '<option value="">自動振り分け（指定なし）</option>';
+            data.dentists.forEach(d => {
+                formDentistId.innerHTML += `<option value="${d.dentistId}">${d.dentistName}</option>`;
+            });
+
+            const formChairId = document.getElementById('formChairId');
+            formChairId.innerHTML = '<option value="">自動振り分け（指定なし）</option>';
+            chairs.forEach(c => {
+                formChairId.innerHTML += `<option value="${c.chairId}">${c.chairName}</option>`;
+            });
+            
+            modalState.currentViewYear = currentDate.getFullYear();
+            modalState.currentViewMonth = currentDate.getMonth() + 1;
+            document.getElementById('formReservationDate').value = toLocalISOString(currentDate);
+            document.getElementById('formReservationTime').value = '';
+
+            // 編集モードから戻った時用にロックを解除
+            document.getElementById('formPatientName').readOnly = false;
+            document.getElementById('formPatientNameKana').readOnly = false;
+            document.getElementById('formPatientTel').readOnly = false;
+            document.querySelectorAll('input[name="patientTypeRadio"]').forEach(r => r.disabled = false);
+            document.querySelectorAll('.patient-search-btn').forEach(btn => btn.style.display = '');
+            const btnClear = document.getElementById('btnClearPatient');
+            if (btnClear) btnClear.style.display = '';
+        }
+
+        document.getElementById('btnAddReservation').addEventListener('click', async () => {
+            window.editAppointmentId = null;
+            document.querySelector('#addApptModal .modal-title').innerText = '予約追加';
+            await initApptWizard();
+            showStep(1);
+            addApptModal.show();
+        });
+
+        window.openEditApptModal = async function(encodedJson) {
+            const a = JSON.parse(decodeURIComponent(encodedJson));
+            window.editAppointmentId = a.appointmentId;
+            apptModal.hide();
+            
+            document.querySelector('#addApptModal .modal-title').innerText = '予約内容の変更';
+            await initApptWizard();
+            
+            if (a.appointMethod) {
+                const r = document.querySelector(`input[name="formAppointMethod"][value="${a.appointMethod}"]`);
+                if (r) r.checked = true;
+            }
+            if (a.treatmentId) {
+                const r = document.querySelector(`input[name="formTreatmentId"][value="${a.treatmentId}"]`);
+                if (r) r.checked = true;
+            }
+            if (a.dentistId) {
+                document.getElementById('formDentistId').value = a.dentistId;
+            }
+            if (a.chairId) {
+                document.getElementById('formChairId').value = a.chairId;
+            }
+            
+            let dateStr = '';
+            let timeStr = '';
+            if (Array.isArray(a.startAt)) {
+                dateStr = `${a.startAt[0]}-${String(a.startAt[1]).padStart(2,'0')}-${String(a.startAt[2]).padStart(2,'0')}`;
+                timeStr = `${String(a.startAt[3]).padStart(2,'0')}:${String(a.startAt[4]||0).padStart(2,'0')}`;
+            } else if (a.startAt) {
+                const dt = new Date(a.startAt);
+                dateStr = toLocalISOString(dt);
+                timeStr = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+            }
+            
+            if (dateStr) {
+                const dt = new Date(dateStr);
+                modalState.currentViewYear = dt.getFullYear();
+                modalState.currentViewMonth = dt.getMonth() + 1;
+                document.getElementById('formReservationDate').value = dateStr;
+            }
+            if (timeStr) {
+                document.getElementById('formReservationTime').value = timeStr;
+            }
+            
+            document.getElementById('formPatientName').value = a.patientName || '';
+            document.getElementById('formPatientNameKana').value = a.patientNameKana || '';
+            document.getElementById('formPatientTel').value = a.patientTel || '';
+            document.getElementById('formPatientId').value = a.patientId || '';
+            
+            // ロック処理
+            document.getElementById('formPatientName').readOnly = true;
+            document.getElementById('formPatientNameKana').readOnly = true;
+            document.getElementById('formPatientTel').readOnly = true;
+            document.querySelectorAll('input[name="patientTypeRadio"]').forEach(r => {
+                r.disabled = true;
+                if (a.visitType === r.value) r.checked = true;
+            });
+            document.querySelectorAll('.patient-search-btn').forEach(btn => btn.style.display = 'none');
+            const btnClear = document.getElementById('btnClearPatient');
+            if (btnClear) btnClear.style.display = 'none';
+            
+            document.getElementById('formPatientComment').value = a.patientComment || '';
+            
+            showStep(1);
+            addApptModal.show();
+        };
+
+        const patientSearchModalInstance = new bootstrap.Modal(document.getElementById('patientSearchResultModal'));
+        
+        document.querySelectorAll('.patient-search-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const target = e.target.dataset.searchTarget;
+                let q = '';
+                if (target === 'kana') {
+                    q = document.getElementById('formPatientNameKana').value;
+                } else if (target === 'tel') {
+                    q = document.getElementById('formPatientTel').value;
+                }
+                
+                if (!q) {
+                    alert('検索キーワードを入力してください');
+                    return;
+                }
+                
+                const res = await fetch('/clinic/api/reservations/search-patients?q=' + encodeURIComponent(q));
+                const patients = await res.json();
+                
+                const list = document.getElementById('patientSearchResultList');
+                list.innerHTML = '';
+                
+                if (patients.length === 0) {
+                    list.innerHTML = '<div class="list-group-item text-muted">該当する患者が見つかりません</div>';
+                } else {
+                    patients.forEach(p => {
+                        const item = document.createElement('button');
+                        item.type = 'button';
+                        item.className = 'list-group-item list-group-item-action p-3';
+                        item.innerHTML = `
+                            <div class="d-flex w-100 justify-content-between align-items-center mb-2">
+                                <div>
+                                    <span class="fs-5 fw-bold text-primary">${p.name}</span>
+                                    <span class="ms-2 text-muted small">${p.kana}</span>
+                                </div>
+                                <span class="badge bg-light text-dark border"><i class="bi bi-card-text"></i> ${p.patientCode || '未発行'}</span>
+                            </div>
+                            <div class="text-secondary small d-flex flex-wrap gap-3">
+                                <span><i class="bi bi-telephone-fill"></i> ${p.tel}</span>
+                                <span><i class="bi bi-person-fill"></i> ${p.gender}</span>
+                                <span><i class="bi bi-calendar-event-fill"></i> ${p.birthday}</span>
+                            </div>
+                        `;
+                        item.addEventListener('click', () => {
+                            document.getElementById('formPatientId').value = p.patientId;
+                            document.getElementById('formPatientName').value = p.name;
+                            document.getElementById('formPatientNameKana').value = p.kana;
+                            document.getElementById('formPatientTel').value = p.tel;
+                            
+                            const badge = document.getElementById('accountStatusBadge');
+                            if (badge) {
+                                badge.className = 'badge bg-success fs-6';
+                                badge.innerText = '連携済み';
+                            }
+                            
+                            patientSearchModalInstance.hide();
+                        });
+                        list.appendChild(item);
+                    });
+                }
+                
+                patientSearchModalInstance.show();
+            });
+        });
+
+        document.getElementById('addReservationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const treatSel = document.querySelector('input[name="formTreatmentId"]:checked').value;
+            const trInfo = treatmentsData.find(t => t.treatmentId == treatSel);
+            let vType = trInfo ? trInfo.targetPatientType : 'FIRST_VISIT';
+
+            const payload = {
+                appointMethod: document.querySelector('input[name="formAppointMethod"]:checked').value,
+                visitType: vType === 'EXISTING' ? 'RE_VISIT' : 'FIRST_VISIT',
+                treatmentId: parseInt(treatSel),
+                dentistId: document.getElementById('formDentistId').value ? parseInt(document.getElementById('formDentistId').value) : null,
+                chairId: document.getElementById('formChairId').value ? parseInt(document.getElementById('formChairId').value) : null,
+                reservationDate: document.getElementById('formReservationDate').value,
+                reservationTime: document.getElementById('formReservationTime').value,
+                patientComment: document.getElementById('formPatientComment').value,
+                name: document.getElementById('formPatientName').value,
+                nameKana: document.getElementById('formPatientNameKana').value,
+                tel: document.getElementById('formPatientTel').value,
+                patientId: null
+            };
+            
+            if (vType === 'EXISTING') {
+                const pId = document.getElementById('formPatientId').value;
+                if (pId) {
+                    payload.patientId = parseInt(pId);
+                }
+            }
+
+            const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+            try {
+                const isEdit = !!window.editAppointmentId;
+                const url = isEdit ? '/clinic/api/reservations/' + window.editAppointmentId : '/clinic/api/reservations';
+                const method = isEdit ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [csrfHeader]: csrfToken
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    addApptModal.hide();
+                    document.getElementById('addReservationForm').reset();
+                    loadView(); // refresh calendar
+                    
+                    const toastEl = document.getElementById('successToast');
+                    const toastBody = toastEl.querySelector('.toast-body');
+                    if (toastBody) {
+                        toastBody.innerHTML = isEdit ? '<i class="bi bi-check-circle-fill me-2"></i>予約を変更しました' : '<i class="bi bi-check-circle-fill me-2"></i>予約を追加しました';
+                    }
+                    const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+                    toast.show();
+                } else {
+                    alert('予約エラー: ' + data.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('通信エラーが発生しました。');
+            }
+        });
+
+        // 検索で選択後に手動で名前等を変更した場合は連携を解除する
+        ['formPatientName', 'formPatientNameKana', 'formPatientTel'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', () => {
+                    const pIdInput = document.getElementById('formPatientId');
+                    if (pIdInput.value) {
+                        pIdInput.value = '';
+                        const badge = document.getElementById('accountStatusBadge');
+                        if (badge) {
+                            badge.className = 'badge bg-secondary fs-6';
+                            badge.innerText = '未登録';
+                        }
+                    }
+                });
+            }
+        });
+        
+        const btnClear = document.getElementById('btnClearPatient');
+        if (btnClear) {
+            btnClear.addEventListener('click', () => {
+                document.getElementById('formPatientName').value = '';
+                document.getElementById('formPatientNameKana').value = '';
+                document.getElementById('formPatientTel').value = '';
+                document.getElementById('formPatientId').value = '';
+                const badge = document.getElementById('accountStatusBadge');
+                if (badge) {
+                    badge.className = 'badge bg-secondary fs-6';
+                    badge.innerText = '未登録';
+                }
+            });
         }
 
         // Run

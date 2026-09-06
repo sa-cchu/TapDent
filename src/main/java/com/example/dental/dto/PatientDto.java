@@ -14,6 +14,8 @@ public class PatientDto {
     private Long dentalId;
     private String patientCode;
     private String name;
+    private String pronunciationGuide;
+    private String gender;
     private LocalDate birthday;
     private String tel;
     private String email;

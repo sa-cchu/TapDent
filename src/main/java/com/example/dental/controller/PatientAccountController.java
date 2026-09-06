@@ -1,4 +1,5 @@
 package com.example.dental.controller;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.example.dental.entity.DentalClinic;
 import com.example.dental.entity.Patient;
@@ -26,8 +27,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDateTime;
 import java.util.Map;
-
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Controller
 @RequestMapping("/patient/{token}/account")
