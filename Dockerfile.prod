@@ -1,0 +1,33 @@
+# === Stage 1: ビルドステージ ===
+FROM eclipse-temurin:21-jdk AS builder
+WORKDIR /app
+
+# 依存関係の解決をキャッシュするため、先にpom.xmlとmvnwをコピー
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+
+# 改行コードの修正と実行権限の付与
+RUN sed -i 's/\r$//' mvnw
+RUN chmod +x mvnw
+
+# 依存関係をダウンロード（ソースコード変更時にもキャッシュを効かせるため）
+RUN ./mvnw dependency:go-offline
+
+# ソースコードをコピーしてビルド（テストはスキップして高速化）
+COPY src src
+RUN ./mvnw package -DskipTests
+
+
+# === Stage 2: 実行ステージ ===
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+# ビルドステージで作成されたJARファイルのみをコピー
+COPY --from=builder /app/target/*.jar app.jar
+
+# 外部からのアクセス用にポートを開放
+EXPOSE 8080
+
+# コンテナ起動時にJARを実行
+CMD ["java", "-jar", "app.jar"]

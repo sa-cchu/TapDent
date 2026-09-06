@@ -1,0 +1,47 @@
+version: '3.8'
+services:
+  db:
+    image: mysql:8.0
+    container_name: tapdent-db-prod
+    environment:
+      # サーバーに配置した .env ファイル、もしくはクラウドの環境変数から読み込まれます
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      # 127.0.0.1 を頭につけて、外部ネットワークからの不正な直接アクセスを遮断
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+    restart: always
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: tapdent-web-prod
+    ports:
+      # 本番環境用に 80番ポート（HTTP）を 8080 にマッピングする例
+      - "80:8080"
+    # ※本番用なので volumes: - .:/app などのソースコード同期は行いません
+    environment:
+      # データベース接続先を コンテナ間通信の "db" に指定
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/${MYSQL_DATABASE}?useSSL=false&serverTimezone=Asia/Tokyo&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      # Spring Profiles を設定（必要に応じて）
+      - SPRING_PROFILES_ACTIVE=prod
+      # メール設定 (環境変数がない場合はMailHogをフォールバックにしますが、本番ではMailHogは推奨されません)
+      - SPRING_MAIL_HOST=${SPRING_MAIL_HOST:-mailhog}
+      - SPRING_MAIL_PORT=${SPRING_MAIL_PORT:-1025}
+      - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME:-}
+      - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD:-}
+      - SPRING_MAIL_AUTH=${SPRING_MAIL_AUTH:-false}
+      - SPRING_MAIL_STARTTLS=${SPRING_MAIL_STARTTLS:-false}
+    depends_on:
+      - db
+    restart: always
+
+volumes:
+  mysql_data_prod:
