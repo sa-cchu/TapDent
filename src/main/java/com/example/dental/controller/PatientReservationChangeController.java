@@ -27,15 +27,18 @@ public class PatientReservationChangeController {
     private final AppointmentRepository appointmentRepository;
     private final AppointmentService appointmentService;
     private final EmailService emailService;
+    private final com.example.dental.service.SystemLogService systemLogService;
 
     public PatientReservationChangeController(PatientRepository patientRepository,
                                               AppointmentRepository appointmentRepository,
                                               AppointmentService appointmentService,
-                                              EmailService emailService) {
+                                              EmailService emailService,
+                                              com.example.dental.service.SystemLogService systemLogService) {
         this.patientRepository = patientRepository;
         this.appointmentRepository = appointmentRepository;
         this.appointmentService = appointmentService;
         this.emailService = emailService;
+        this.systemLogService = systemLogService;
     }
 
     /**
@@ -110,7 +113,8 @@ public class PatientReservationChangeController {
     public String executeCancel(@PathVariable String token, 
                                 @PathVariable Long appointmentId, 
                                 @AuthenticationPrincipal PatientUserDetails userDetails,
-                                RedirectAttributes redirectAttributes) {
+                                RedirectAttributes redirectAttributes,
+                                jakarta.servlet.http.HttpServletRequest request) {
         try {
             Appointment appointment = validateAndGetAppointment(userDetails, appointmentId);
             appointmentService.cancelAppointment(appointmentId);
@@ -120,6 +124,8 @@ public class PatientReservationChangeController {
             if (patient.getEmail() != null && !patient.getEmail().isEmpty()) {
                 emailService.sendReservationCancelEmail(patient.getEmail(), appointment);
             }
+            
+            systemLogService.saveLog(com.example.dental.enums.LogActionType.APPOINTMENT_CANCEL, userDetails.getUsername(), appointment.getDentalClinic(), "患者側から予約キャンセル (ID: " + appointmentId + ")", request);
 
             redirectAttributes.addFlashAttribute("successMessage", "予約をキャンセルしました。");
             return "redirect:/patient/" + token + "/dashboard";
@@ -206,7 +212,8 @@ public class PatientReservationChangeController {
                                     @AuthenticationPrincipal PatientUserDetails userDetails,
                                     @RequestParam String reservationDate,
                                     @RequestParam String reservationTime,
-                                    RedirectAttributes redirectAttributes) {
+                                    RedirectAttributes redirectAttributes,
+                                    jakarta.servlet.http.HttpServletRequest request) {
         try {
             Appointment appointment = validateAndGetAppointment(userDetails, appointmentId);
             
@@ -237,6 +244,8 @@ public class PatientReservationChangeController {
             if (patient.getEmail() != null && !patient.getEmail().isEmpty()) {
                 emailService.sendReservationChangeEmail(patient.getEmail(), updatedAppointment);
             }
+            
+            systemLogService.saveLog(com.example.dental.enums.LogActionType.APPOINTMENT_UPDATE, userDetails.getUsername(), appointment.getDentalClinic(), "患者側から予約日時変更 (ID: " + appointmentId + ")", request);
 
             redirectAttributes.addFlashAttribute("successMessage", "予約の日時を変更しました。");
             return "redirect:/patient/" + token + "/dashboard";

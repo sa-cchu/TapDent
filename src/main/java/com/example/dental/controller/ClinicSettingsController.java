@@ -21,10 +21,17 @@ public class ClinicSettingsController {
 
     private final DentalClinicService dentalClinicService;
     private final EmailService emailService;
+    private final com.example.dental.service.SystemLogService systemLogService;
+    private final com.example.dental.repository.DentalClinicRepository dentalClinicRepository;
 
-    public ClinicSettingsController(DentalClinicService dentalClinicService, EmailService emailService) {
+    public ClinicSettingsController(DentalClinicService dentalClinicService, 
+                                    EmailService emailService,
+                                    com.example.dental.service.SystemLogService systemLogService,
+                                    com.example.dental.repository.DentalClinicRepository dentalClinicRepository) {
         this.dentalClinicService = dentalClinicService;
         this.emailService = emailService;
+        this.systemLogService = systemLogService;
+        this.dentalClinicRepository = dentalClinicRepository;
     }
 
     @GetMapping
@@ -96,6 +103,9 @@ public class ClinicSettingsController {
         try {
             // パスコード一致したので更新
             dentalClinicService.updateCredentials(userDetails.getUsername(), newLoginId, newPassword);
+            
+            com.example.dental.entity.DentalClinic entity = dentalClinicRepository.findById(dentalClinicService.getClinicByLoginId(userDetails.getUsername()).getDentalId()).orElse(null);
+            systemLogService.saveLog(com.example.dental.enums.LogActionType.CLINIC_SETTING_UPDATE, userDetails.getUsername(), entity, "医院認証情報（ログインID/パスワード）更新", request);
 
             // セッション破棄（ログアウトさせるため）
             session.invalidate();

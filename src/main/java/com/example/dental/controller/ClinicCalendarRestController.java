@@ -33,6 +33,7 @@ public class ClinicCalendarRestController {
     private final com.example.dental.repository.PatientRepository patientRepository;
     private final com.example.dental.service.ClinicReservationService clinicReservationService;
     private final com.example.dental.service.AppointmentService appointmentService;
+    private final com.example.dental.service.SystemLogService systemLogService;
 
     public ClinicCalendarRestController(AppointmentRepository appointmentRepository,
                                         DentalChairRepository dentalChairRepository,
@@ -42,7 +43,8 @@ public class ClinicCalendarRestController {
                                         com.example.dental.repository.DentistRepository dentistRepository,
                                         com.example.dental.repository.PatientRepository patientRepository,
                                         com.example.dental.service.ClinicReservationService clinicReservationService,
-                                        com.example.dental.service.AppointmentService appointmentService) {
+                                        com.example.dental.service.AppointmentService appointmentService,
+                                        com.example.dental.service.SystemLogService systemLogService) {
         this.appointmentRepository = appointmentRepository;
         this.dentalChairRepository = dentalChairRepository;
         this.dentalClinicRepository = dentalClinicRepository;
@@ -52,6 +54,7 @@ public class ClinicCalendarRestController {
         this.patientRepository = patientRepository;
         this.clinicReservationService = clinicReservationService;
         this.appointmentService = appointmentService;
+        this.systemLogService = systemLogService;
     }
 
     private DentalClinic getClinic(UserDetails userDetails) {
@@ -312,10 +315,14 @@ public class ClinicCalendarRestController {
 
     @PostMapping
     public ResponseEntity<?> createReservation(@AuthenticationPrincipal UserDetails userDetails,
-                                               @RequestBody com.example.dental.dto.ReservationFormDto dto) {
+                                               @RequestBody com.example.dental.dto.ReservationFormDto dto,
+                                               jakarta.servlet.http.HttpServletRequest request) {
         try {
             DentalClinic clinic = getClinic(userDetails);
             com.example.dental.entity.Appointment appointment = clinicReservationService.createClinicReservation(clinic, dto);
+            
+            systemLogService.saveLog(com.example.dental.enums.LogActionType.APPOINTMENT_CREATE, userDetails.getUsername(), clinic, "医院側から予約を作成 (ID: " + appointment.getAppointmentId() + ")", request);
+            
             return ResponseEntity.ok(Map.of("success", true, "appointmentId", appointment.getAppointmentId()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
@@ -325,12 +332,18 @@ public class ClinicCalendarRestController {
     @PutMapping("/{appointmentId}/status")
     public ResponseEntity<?> updateReservationStatus(@AuthenticationPrincipal UserDetails userDetails,
                                                      @PathVariable Long appointmentId,
-                                                     @RequestBody Map<String, String> request) {
+                                                     @RequestBody Map<String, String> requestBody,
+                                                     jakarta.servlet.http.HttpServletRequest request) {
         try {
             DentalClinic clinic = getClinic(userDetails);
-            String statusStr = request.get("status");
+            String statusStr = requestBody.get("status");
             com.example.dental.enums.AppointmentStatus status = com.example.dental.enums.AppointmentStatus.valueOf(statusStr);
             appointmentService.updateAppointmentStatus(appointmentId, status, clinic);
+            
+            com.example.dental.enums.LogActionType logType = status == com.example.dental.enums.AppointmentStatus.CANCELLED ? 
+                com.example.dental.enums.LogActionType.APPOINTMENT_CANCEL : com.example.dental.enums.LogActionType.APPOINTMENT_UPDATE;
+            systemLogService.saveLog(logType, userDetails.getUsername(), clinic, "予約のステータス変更 (ID: " + appointmentId + ", 新ステータス: " + status.name() + ")", request);
+
             return ResponseEntity.ok(Map.of("success", true));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "無効なステータスまたは予約です"));
@@ -342,7 +355,8 @@ public class ClinicCalendarRestController {
     @PutMapping("/{appointmentId}")
     public ResponseEntity<?> updateReservationFull(@AuthenticationPrincipal UserDetails userDetails,
                                                    @PathVariable Long appointmentId,
-                                                   @RequestBody com.example.dental.dto.ReservationFormDto dto) {
+                                                   @RequestBody com.example.dental.dto.ReservationFormDto dto,
+                                                   jakarta.servlet.http.HttpServletRequest request) {
         try {
             DentalClinic clinic = getClinic(userDetails);
             com.example.dental.entity.TreatmentType treatment = treatmentTypeRepository.findById(dto.getTreatmentId())
@@ -352,6 +366,8 @@ public class ClinicCalendarRestController {
                 appointmentId, clinic, treatment, dto.getReservationDate(), dto.getReservationTime(), 
                 dto.getDentistId(), dto.getChairId(), dto.getAppointMethod(), dto.getPatientComment());
                 
+            systemLogService.saveLog(com.example.dental.enums.LogActionType.APPOINTMENT_UPDATE, userDetails.getUsername(), clinic, "予約内容の変更 (ID: " + appointment.getAppointmentId() + ")", request);
+
             return ResponseEntity.ok(Map.of("success", true, "appointmentId", appointment.getAppointmentId()));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));

@@ -39,19 +39,22 @@ public class PatientReservationController {
     private final PatientReservationService patientReservationService;
     private final EmailService emailService;
     private final PatientRepository patientRepository;
+    private final com.example.dental.service.SystemLogService systemLogService;
 
     public PatientReservationController(DentalClinicRepository dentalClinicRepository,
                                         TreatmentTypeRepository treatmentTypeRepository,
                                         AppointmentService appointmentService,
                                         PatientReservationService patientReservationService,
                                         EmailService emailService,
-                                        PatientRepository patientRepository) {
+                                        PatientRepository patientRepository,
+                                        com.example.dental.service.SystemLogService systemLogService) {
         this.dentalClinicRepository = dentalClinicRepository;
         this.treatmentTypeRepository = treatmentTypeRepository;
         this.appointmentService = appointmentService;
         this.patientReservationService = patientReservationService;
         this.emailService = emailService;
         this.patientRepository = patientRepository;
+        this.systemLogService = systemLogService;
     }
 
     private DentalClinic getClinicOrThrow(String token) {
@@ -236,7 +239,8 @@ public class PatientReservationController {
                                                     PatientReservationForm.Step4.class
                                                 }) PatientReservationForm form,
                                                 BindingResult result,
-                                                HttpSession session) {
+                                                HttpSession session,
+                                                jakarta.servlet.http.HttpServletRequest request) {
         DentalClinic clinic = getClinicOrThrow(token);
 
         if (result.hasErrors()) {
@@ -307,6 +311,13 @@ public class PatientReservationController {
             
             // 予約完了メール送信
             emailService.sendReservationCompleteEmail(form.getEmail(), appt);
+            
+            if (userDetails == null) {
+                systemLogService.saveLog(com.example.dental.enums.LogActionType.USER_CREATE, form.getEmail(), clinic, "患者新規登録 (ID: " + appt.getPatient().getPatientId() + ")", request);
+            }
+            String loginId = userDetails != null ? userDetails.getUsername() : form.getEmail();
+            systemLogService.saveLog(com.example.dental.enums.LogActionType.APPOINTMENT_CREATE, loginId, clinic, "患者側から予約作成 (ID: " + appt.getAppointmentId() + ")", request);
+            
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
         }
@@ -329,7 +340,8 @@ public class PatientReservationController {
                                                             PatientReservationForm.Step2.class,
                                                             PatientReservationForm.Step3.class
                                                         }) PatientReservationForm form,
-                                                        BindingResult result) {
+                                                        BindingResult result,
+                                                        jakarta.servlet.http.HttpServletRequest request) {
         if (userDetails == null) {
             return ResponseEntity.status(401).body(Map.of("status", "error", "message", "ログインが必要です。"));
         }
@@ -373,6 +385,8 @@ public class PatientReservationController {
             com.example.dental.entity.Appointment appt = patientReservationService.createAppointmentForExistingPatient(form, clinic, treatment, userDetails.getPatient());
             // 予約完了メール送信
             emailService.sendReservationCompleteEmail(form.getEmail(), appt);
+            
+            systemLogService.saveLog(com.example.dental.enums.LogActionType.APPOINTMENT_CREATE, userDetails.getUsername(), clinic, "患者側から予約作成 (ID: " + appt.getAppointmentId() + ")", request);
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
         }

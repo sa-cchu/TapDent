@@ -30,13 +30,16 @@ public class PatientLoginController {
     private final DentalClinicRepository dentalClinicRepository;
     private final PatientRepository patientRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final com.example.dental.service.SystemLogService systemLogService;
 
     public PatientLoginController(DentalClinicRepository dentalClinicRepository,
                                   PatientRepository patientRepository,
-                                  BCryptPasswordEncoder passwordEncoder) {
+                                  BCryptPasswordEncoder passwordEncoder,
+                                  com.example.dental.service.SystemLogService systemLogService) {
         this.dentalClinicRepository = dentalClinicRepository;
         this.patientRepository = patientRepository;
         this.passwordEncoder = passwordEncoder;
+        this.systemLogService = systemLogService;
     }
 
     @GetMapping("/login")
@@ -79,6 +82,7 @@ public class PatientLoginController {
         Optional<Patient> patientOpt = patientRepository.findByClinicAndLoginId(clinic, loginId);
         
         if (patientOpt.isEmpty()) {
+            systemLogService.saveLog(com.example.dental.enums.LogActionType.LOGIN_FAILURE, loginId, clinic, "患者ログイン失敗: アカウントが存在しません", request);
             return "redirect:/patient/" + token + "/login?error=true";
         }
         
@@ -86,16 +90,19 @@ public class PatientLoginController {
 
         // 削除チェック
         if (patient.getIsDeleted()) {
+            systemLogService.saveLog(com.example.dental.enums.LogActionType.LOGIN_FAILURE, loginId, clinic, "患者ログイン失敗: 削除済みアカウント", request);
             return "redirect:/patient/" + token + "/login?error=true";
         }
 
         // 凍結チェック
         if (patient.getStatus() == com.example.dental.enums.PatientStatus.WITHDRAWN) {
+            systemLogService.saveLog(com.example.dental.enums.LogActionType.LOGIN_FAILURE, loginId, clinic, "患者ログイン失敗: 凍結アカウント", request);
             return "redirect:/patient/" + token + "/login?error=frozen";
         }
         
         // ロックチェック（現在時刻がロック解除時刻より前ならロック中）
         if (patient.getLockedUntill() != null && patient.getLockedUntill().isAfter(LocalDateTime.now())) {
+            systemLogService.saveLog(com.example.dental.enums.LogActionType.LOGIN_FAILURE, loginId, clinic, "患者ログイン失敗: アカウントロック中", request);
             return "redirect:/patient/" + token + "/login?error=locked";
         }
 
@@ -107,9 +114,11 @@ public class PatientLoginController {
                 // 5回失敗で30分間ロック（実務的な最適解）
                 patient.setLockedUntill(LocalDateTime.now().plusMinutes(30));
                 patientRepository.save(patient);
+                systemLogService.saveLog(com.example.dental.enums.LogActionType.LOGIN_FAILURE, loginId, clinic, "患者ログイン失敗: パスワード間違い（ロック発動）", request);
                 return "redirect:/patient/" + token + "/login?error=locked";
             }
             patientRepository.save(patient);
+            systemLogService.saveLog(com.example.dental.enums.LogActionType.LOGIN_FAILURE, loginId, clinic, "患者ログイン失敗: パスワード間違い", request);
             return "redirect:/patient/" + token + "/login?error=true";
         }
         
@@ -130,6 +139,8 @@ public class PatientLoginController {
         // セッションに保存
         HttpSession session = request.getSession(true);
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext);
+
+        systemLogService.saveLog(com.example.dental.enums.LogActionType.LOGIN_SUCCESS, loginId, clinic, "患者ログイン成功", request);
 
         // ダッシュボードへリダイレクト
         return "redirect:/patient/" + token + "/dashboard";

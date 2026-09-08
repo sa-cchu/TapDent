@@ -25,6 +25,8 @@ public class ClinicPatientManagementController {
 
     private final ClinicPatientManagementService patientManagementService;
     private final DentalClinicService clinicService;
+    private final com.example.dental.repository.DentalClinicRepository dentalClinicRepository;
+    private final com.example.dental.service.SystemLogService systemLogService;
 
     @GetMapping
     public String index(@AuthenticationPrincipal UserDetails userDetails,
@@ -91,10 +93,15 @@ public class ClinicPatientManagementController {
     @PostMapping("/{id}/delete")
     public String delete(@AuthenticationPrincipal UserDetails userDetails,
                          @PathVariable("id") Long patientId,
-                         RedirectAttributes redirectAttributes) {
+                         RedirectAttributes redirectAttributes,
+                         jakarta.servlet.http.HttpServletRequest request) {
         DentalClinicDto clinic = clinicService.getClinicByLoginId(userDetails.getUsername());
         try {
             patientManagementService.deletePatient(clinic.getDentalId(), patientId);
+            
+            com.example.dental.entity.DentalClinic entity = dentalClinicRepository.findById(clinic.getDentalId()).orElse(null);
+            systemLogService.saveLog(com.example.dental.enums.LogActionType.USER_DELETE, userDetails.getUsername(), entity, "医院から患者を削除 (ID: " + patientId + ")", request);
+            
             redirectAttributes.addFlashAttribute("successMessage", "患者を削除しました。");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());

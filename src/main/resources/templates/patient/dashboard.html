@@ -276,12 +276,6 @@
             <i class="bi bi-calendar-plus"></i>
             <span>予約する</span>
         </a>
-        
-        <!-- 電話発信（医院の電話番号） -->
-        <a th:href="'tel:' + ${clinic.tel != null ? clinic.tel : ''}" class="nav-btn">
-            <i class="bi bi-telephone"></i>
-            <span>医院へ電話</span>
-        </a>
     </nav>
 
     <!-- 当日変更不可モーダル -->

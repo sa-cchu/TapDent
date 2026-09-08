@@ -25,13 +25,16 @@ public class PatientPasswordController {
     private final DentalClinicRepository dentalClinicRepository;
     private final PatientService patientService;
     private final PasswordEncoder passwordEncoder;
+    private final com.example.dental.service.SystemLogService systemLogService;
 
     public PatientPasswordController(DentalClinicRepository dentalClinicRepository, 
                                      PatientService patientService,
-                                     PasswordEncoder passwordEncoder) {
+                                     PasswordEncoder passwordEncoder,
+                                     com.example.dental.service.SystemLogService systemLogService) {
         this.dentalClinicRepository = dentalClinicRepository;
         this.patientService = patientService;
         this.passwordEncoder = passwordEncoder;
+        this.systemLogService = systemLogService;
     }
 
     @ModelAttribute
@@ -60,7 +63,8 @@ public class PatientPasswordController {
                                  @AuthenticationPrincipal PatientUserDetails userDetails,
                                  @Validated @ModelAttribute PatientPasswordForm form,
                                  BindingResult bindingResult,
-                                 RedirectAttributes redirectAttributes) {
+                                 RedirectAttributes redirectAttributes,
+                                 jakarta.servlet.http.HttpServletRequest request) {
 
         if (bindingResult.hasErrors()) {
             return "patient/password_edit";
@@ -81,6 +85,9 @@ public class PatientPasswordController {
         // パスワード更新
         patientService.updatePatientPassword(userDetails.getPatient().getPatientId(), form.getNewPassword());
         
+        DentalClinic clinic = dentalClinicRepository.findByPublicUrlToken(token).orElse(null);
+        systemLogService.saveLog(com.example.dental.enums.LogActionType.PASSWORD_CHANGE, userDetails.getUsername(), clinic, "患者パスワード変更", request);
+
         // セッション内のパスワード情報も更新
         userDetails.getPatient().setPassword(passwordEncoder.encode(form.getNewPassword()));
 
